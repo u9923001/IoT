@@ -1,1 +1,0 @@
-{"Com_gps":"/dev/ttyS1","Baud_gps":9600,"Com_ard":"/dev/ttyS0","Baud_ard":57600,"Id":10,"Device":"dev","App":"app","Device_id":"devid","SiteName":"sn","Test_lat":24.951904,"Test_lon":121.226524,"Ip":"http://192.168.50.19:3001/","User":"root","Password":"12345"}
