@@ -1,0 +1,10 @@
+{
+    "localaddr": ":3001",
+    "dbaddr": "http://localhost:8086",
+    "dbname": "test1",
+    "mesure": "mobile",
+    "user": "test",
+    "pass": "123456",
+    "log":"",
+    "verb": 2
+}

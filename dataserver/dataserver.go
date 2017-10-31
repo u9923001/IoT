@@ -1,7 +1,7 @@
 package main
 
 import (
-	//"os"
+	"os"
 	"encoding/json"
 	"fmt"
 	"flag"
@@ -12,11 +12,45 @@ import (
 	"github.com/influxdata/influxdb/client/v2"
 )
 
-var localAddr = flag.String("l", ":3001", "bind at")
-var dbAddr = flag.String("dburl", "http://localhost:8086", "db url")
-var dbName = flag.String("db", "test1", "db name")
-var dbUser = flag.String("u", "user", "db user")
-var dbPass = flag.String("p", "123456", "db password")
+var configFile = flag.String("c", "config.json", "config file")
+
+type Config struct {
+	LocalAddr    string `json:"localaddr"`
+	DbAddr       string `json:"dbaddr"`
+
+	DbName       string `json:"dbname"`
+	DbMesure     string `json:"mesure"`
+	User         string `json:"user"`
+	Pass         string `json:"pass"`
+
+	Log          string `json:"log"`
+	Verb         int    `json:"verb"`
+}
+
+func parseJSONConfig(path string) (error, *Config) {
+	file, err := os.Open(path) // For read access.
+	if err != nil {
+		return err, nil
+	}
+	defer file.Close()
+
+	c := &Config{}
+	err = json.NewDecoder(file).Decode(c)
+	if err != nil {
+		return err, nil
+	}
+
+	if c.LocalAddr == "" {
+		c.LocalAddr = ":3001"
+	}
+
+	if c.DbAddr == "" {
+		c.DbAddr = "http://localhost:8086"
+	}
+
+	return nil, c
+}
+
 
 //Sensor data struct
 type Sensor struct {
@@ -57,10 +91,10 @@ func influxDBClient(u,p string) client.Client {
 	return c
 }
 //Write data to influxDB
-func createMetrics(c client.Client, mesure string, v Sensor) {  
+func createMetrics(c client.Client, dataBase string , mesure string, v Sensor) {  
 	
 	bp, err := client.NewBatchPoints(client.BatchPointsConfig{
-		Database:  DataBase,
+		Database:  dataBase,
 		Precision: "s",
 	})
 
@@ -105,31 +139,7 @@ func createMetrics(c client.Client, mesure string, v Sensor) {
 		return
 	}
 }
-//Handle 7688 send to db
-func sendMb2DB(w http.ResponseWriter, r *http.Request) {
 
-	// only POST
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	//Json decoder
-	v := Sensor{}
-	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&v)	
-	if err != nil {
-		dbgErr("104",err)
-		return
-	}
-	//Check sensor data
-	if checkSD(v) {
-		createMetrics(UserClient, Mesure1, v)
-		fmt.Println(v)
-	}else{
-		fmt.Println("X")
-	}
-}
 //Check string
 func checkSD(v Sensor) (x bool){
 	x = false
@@ -151,22 +161,48 @@ func checkSD(v Sensor) (x bool){
 	x = true
 	return x 
 }
-//Gobal var
-var DataBase, Mesure1 string
-var UserClient client.Client
 
 func main() {
 	flag.Parse()
 
-	DataBase = *dbName
-	Mesure1 = "mobile"
+	err, config := parseJSONConfig(*configFile)
+	if err != nil {
+		fmt.Println("load config file error", err)
+		os.Exit(-1)
+	}
 
-	UserClient = influxDBClient(*dbUser, *dbPass)
+	dbClient := influxDBClient(config.User, config.Pass)
 
 	myRouter := http.NewServeMux()
-	myRouter.HandleFunc("/", sendMb2DB)
-	fmt.Println("bind @ ", *localAddr)
-	http.ListenAndServe(*localAddr, myRouter)
+
+	//Handle 7688 send to db
+	myRouter.HandleFunc("/", func (w http.ResponseWriter, r *http.Request) {
+
+		// only POST
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		//Json decoder
+		v := Sensor{}
+		decoder := json.NewDecoder(r.Body)
+		err := decoder.Decode(&v)	
+		if err != nil {
+			dbgErr("104",err)
+			return
+		}
+		//Check sensor data
+		if checkSD(v) {
+			createMetrics(dbClient, config.DbName, config.DbMesure, v)
+			fmt.Println(v)
+		}else{
+			fmt.Println("X")
+		}
+	})
+
+	fmt.Println("bind @", config.LocalAddr)
+	http.ListenAndServe(config.LocalAddr, myRouter)
 
 }
 
