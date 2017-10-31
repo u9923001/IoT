@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-//	"uart/serial"
 	"./serial"
 	"os"
 	"strconv"
@@ -152,8 +151,8 @@ func httpPost(sev Sensor, conuter *int32){
 	resp, err := client.Do(req)
 	if err != nil {
 		dbgErr("253", err)
-		//fmt.Println("Server connect error")    
-		return        
+		//fmt.Println("Server connect error")
+		return
 	}
 	defer resp.Body.Close()
 }
@@ -189,11 +188,11 @@ func webSocHand(w http.ResponseWriter, r *http.Request) {
 	defer sess.Del(wsconn)
 
 	for {
-		messageType, message, err := wsconn.ReadMessage()        
+		messageType, message, err := wsconn.ReadMessage()
 		if err != nil {
 			dbgErr("290", err)
 			return
-		}        
+		}
 
 		cd := message[0]
 		n := len(message)

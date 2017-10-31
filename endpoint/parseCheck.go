@@ -10,7 +10,7 @@ import (
 )
 
 func parseTimeStr(_date,_time string) time.Time {
-    
+
 	var t time.Time
 	timeFormat := "150405020106"
 	t, err := time.ParseInLocation(timeFormat, _time+_date, time.UTC)
