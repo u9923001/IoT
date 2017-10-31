@@ -66,6 +66,8 @@ type Config struct {
 	Test_lat float32
 	Test_lon float32
 	Ip string
+	User string
+	Password string
 }
 //Print row number & error 
 func dbgErr(n string,p interface{}){
@@ -177,6 +179,12 @@ func sendDb(){
 }
 //Websocket func
 func webSocHand(w http.ResponseWriter, r *http.Request) {
+	u, p, ok := r.BasicAuth()
+	if !ok || ConfigBuf.User != u || ConfigBuf.Password != p {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
 	upgrader := websocket.Upgrader{
 		//ReadBufferSize:  1024,
 		//WriteBufferSize: 1024,
@@ -263,6 +271,19 @@ func webSocHand(w http.ResponseWriter, r *http.Request) {
 			ConfigBuf.SiteName = wd[7]
 			SensorBuf.SiteName = ConfigBuf.SiteName
 
+			ConfigBuf.Ip = wd[10]
+			SerUrl = ConfigBuf.Ip
+
+			if !checkT(wd[11]) {
+				goto Err
+			}
+			ConfigBuf.User = wd[11]
+
+			if !checkT(wd[12]) {
+				goto Err
+			}
+			ConfigBuf.Password = wd[12]
+
 			SaveJsonFile(ConfigBuf,"./config.json")
 		case '1'://
 		case '2'://connect server
@@ -342,7 +363,25 @@ func main() {
 	//http handle
 	myRouter := http.NewServeMux()
 	myRouter.HandleFunc("/socket", webSocHand)
-	myRouter.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir("./app/"))))
+
+	fsHandle := http.StripPrefix("/", http.FileServer(http.Dir("./app/")))
+	myRouter.HandleFunc("/", func (w http.ResponseWriter, r *http.Request) {
+		u, p, ok := r.BasicAuth()
+//		fmt.Println("[auth]", u, p, ok)
+		if !ok {
+			w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		if ConfigBuf.User != u || ConfigBuf.Password != p {
+			w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+			w.WriteHeader(http.StatusUnauthorized)
+//			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+		fsHandle.ServeHTTP(w, r)
+	})
+	//myRouter.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir("./app/"))))
 	fmt.Println("listen :3002")
 	http.ListenAndServe(":3002", myRouter)
 }

@@ -34,6 +34,28 @@
             Mobile Air Box
         </h2>
         <form class="ui form">
+            <h4 id="a0_clk" class="ui dividing header">
+                <i class="caret down icon" style="color:chocolate;"></i>
+                <div class="content" style="color:chocolate;">
+                Connection Information
+                </div>
+            </h4>
+            <div id="a0_hid">
+                <div class="four fields">
+                    <div class="field">
+                        <label style="color:deeppink;">Set User</label>
+                        <input type="text" id="ur" maxlength="32" value="">
+                    </div>
+                    <div class="field">
+                        <label style="color:deeppink;">Set Password</label>
+                        <input type="text" id="pd" maxlength="32" value="">
+                    </div>
+                    <div class="field">
+                        <label style="color:deeppink;">Server IP</label>
+                        <input type="text" id="sp" maxlength="32" value="">
+                    </div>
+                </div>
+            </div>  
             <h4 id="a_clk" class="ui dividing header">
                 <i class="caret down icon" style="color:chocolate;"></i>
                 <div class="content" style="color:chocolate;">
@@ -57,12 +79,6 @@
                     <div class="field">
                         <label style="color:slategray;">GPS Baud</label>
                         <input type="text" id="gb" maxlength="16" value="">
-                    </div>
-                </div>
-                <div class="four fields">
-                    <div class="field">
-                        <label style="color:slategray;">Server IP</label>
-                        <input type="text" id="sp" maxlength="32" value="">
                     </div>
                 </div>
             </div>
@@ -307,6 +323,8 @@ function upInfo(){
     document.getElementById('tlat').value=log1[9];
     document.getElementById('tlon').value=log1[10];
     document.getElementById('sp').value=log1[11];
+    document.getElementById('ur').value=log1[12];
+    document.getElementById('pd').value=log1[13];
     
     var loc = [log1[9], log1[10]];
     if(map1){
@@ -553,6 +571,7 @@ var update = function() {
 $( document ).ready(function() {
     var ld = document.getElementById('ld');
     var sv = document.getElementById('sv');
+    var a0_clk = document.getElementById('a0_clk');
     var a_clk = document.getElementById('a_clk');
     var b_clk = document.getElementById('b_clk');
     var c_clk = document.getElementById('c_clk');
@@ -562,8 +581,9 @@ $( document ).ready(function() {
     
     ld.onclick = function(){
         ws.send("5,open");
+        alert("Load finish!");
     };
-    
+    var edT1=new Date(),stT1=new Date(); 
     sv.onclick = function(){
         var a0 = document.getElementById('gp').value; 
         var a1 = document.getElementById('gb').value; 
@@ -576,7 +596,16 @@ $( document ).ready(function() {
         var a8 = document.getElementById('tlat').value;
         var a9 = document.getElementById('tlon').value;
         var aa = document.getElementById('sp').value;
-        ws.send("0,"+a0+","+a1+","+a2+","+a3+","+a4+","+a5+","+a6+","+a7+","+a8+","+a9+","+aa);
+        var ab = document.getElementById('ur').value;
+        var ac = document.getElementById('pd').value;
+        edT1 =new Date();
+        if(edT1.getTime()-stT1.getTime()>1000){
+            stT1=new Date(); 
+            ws.send("0,"+a0+","+a1+","+a2+","+a3+","+a4+","+a5+","+a6+","+a7+","+a8+","+a9+","+aa+","+ab+","+ac);
+            alert("Save finish!");
+        }else{
+            alert("Please Wait!");
+        }
     };
     /*
     a_clk.onmouseover  = function(){
@@ -605,6 +634,11 @@ $( document ).ready(function() {
         document.body.style.cursor = "auto";
     };
     */
+    $('#a0_clk')
+    .popup({
+        title   : 'Click me,',
+        content : 'to hide element.'
+    });
     $('#a_clk')
     .popup({
         title   : 'Click me,',
@@ -626,6 +660,9 @@ $( document ).ready(function() {
         content : 'to hide element.'
     });
     
+    a0_clk.onclick = function(){
+        $('#a0_hid').transition('horizontal flip');
+    };
     a_clk.onclick = function(){
         $('#a_hid').transition('horizontal flip');
     };    
