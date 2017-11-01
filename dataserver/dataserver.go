@@ -194,7 +194,7 @@ func main() {
 		}
 		//Check sensor data
 		if checkSD(v) {
-			createMetrics(dbClient, config.DbName, config.DbMesure, v)
+			go createMetrics(dbClient, config.DbName, config.DbMesure, v)
 			fmt.Println(v)
 		}else{
 			fmt.Println("X")

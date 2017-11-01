@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"./serial"
 	"os"
+	"os/signal"
+	"syscall"
 	"strconv"
 	"bytes"
 	"strings"
@@ -284,9 +286,13 @@ func webSocHand(w http.ResponseWriter, r *http.Request) {
 			}
 			ConfigBuf.Password = wd[12]
 
-			SaveJsonFile(ConfigBuf,"./config.json")
-		case '1'://
-		case '2'://connect server
+			// trigger save
+			select {
+			case <-chFlush:
+			default:
+			}
+			chFlush <- 0
+
 
 		case '5'://send config
 			s := "0"
@@ -357,6 +363,17 @@ func main() {
 	}
 
 
+	go saveWorker()
+
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	go func () {
+		<- sigs
+		fmt.Println("flush on exit")
+		chFlush <- -1
+	}()
+
+
 	//send to DB
 	go sendDb()
 
@@ -386,15 +403,37 @@ func main() {
 	http.ListenAndServe(":3002", myRouter)
 }
 
+var chFlush = make(chan int, 1)
+func saveWorker() {
+	changed := false
+	for {
+		t := <- chFlush
+
+		switch t {
+		case -1:
+			if changed {
+				fmt.Println("need flush...")
+				SaveJsonFile(ConfigBuf, "./config.json")
+			}
+			fmt.Println("flush end")
+			os.Exit(0)
+		default:
+			changed = true
+		}
+	}
+}
+
 func SaveJsonFile(v interface{}, path string) {
 	fo, err := os.Create(path)
 	if err != nil {
-		panic(err)
+		fmt.Println("SaveJsonFile: os.Create()", err)
+		return
 	}
 	defer fo.Close()
 	e := json.NewEncoder(fo)
 	if err := e.Encode(v); err != nil {
-		panic(err)
+		fmt.Println("SaveJsonFile: Encode()", err)
+		return
 	}
 }
 
