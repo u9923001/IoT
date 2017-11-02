@@ -5,6 +5,7 @@
     "mesure": "mobile",
     "user": "test",
     "pass": "123456",
+    "keydir": "./keys/",
     "log":"",
-    "verb": 2
+    "verb": 4
 }
