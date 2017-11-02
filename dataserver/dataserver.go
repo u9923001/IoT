@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"unicode"
 	//"time"
 
@@ -41,7 +42,7 @@ func influxDBClient(u, p string) client.Client {
 }
 
 //Write data to influxDB
-func createMetrics(c client.Client, dataBase string, mesure string, v Sensor, keypool *KeyPool) {
+func create7688Metrics(c client.Client, dataBase string, v Sensor, keypool *KeyPool) {
 
 	verify := false
 	key := keypool.Get(v.Id)
@@ -83,7 +84,7 @@ func createMetrics(c client.Client, dataBase string, mesure string, v Sensor, ke
 		"Verified":    verify,
 	}
 	//udbtime, _ := time.Parse(time.RFC3339,strconv.Itoa(int(v.Timestamp)))
-	pt, err := client.NewPoint(mesure, tags, fields, v.Timestamp)
+	pt, err := client.NewPoint("mobile", tags, fields, v.Timestamp)
 	if err != nil {
 		dbgErr("88", err)
 		return
@@ -158,8 +159,7 @@ func main() {
 
 	//定時抓資料
 	lcache := NewLassCache()
-	go GetLassData(sess, lcache)
-
+	go GetLassData(sess, lcache, dbClient, config.DbName)
 
 	myRouter := http.NewServeMux()
 
@@ -187,27 +187,28 @@ func main() {
 				return
 			}
 
-			mlen := len(message)
-			com := message[0]
-			sb := message[2:mlen]
-			//fmt.Println(message)
-			switch com {
-			case '0': //history
-				str := string(sb)
-				res, err := queryDB(dbClient, config.DbName, "SELECT * FROM sensor WHERE Device_id = '"+str+"' AND time > now() - 1d")
+			cmd := strings.SplitN(string(message), ",", 2)
+			mlen := len(cmd)
+			Vln(3, "[cmd]", mlen, cmd)
+			if mlen != 2 {
+				goto END
+			}
+			switch cmd[0] {
+			case "0": //history
+				res, err := queryDB(dbClient, config.DbName, "SELECT * FROM sensor WHERE Device_id = '"+cmd[1]+"' AND time > now() - 1d")
 				if err != nil {
-					wsconn.Send(1, []byte(""))
+					wsconn.Send(1, []byte("0,[]"))
 					goto END
 				}
 				b, err := json.Marshal(res)
 				if err != nil {
-					wsconn.Send(1, []byte(""))
+					wsconn.Send(1, []byte("0,[]"))
 					goto END
 				}
 				wsconn.Send(messageType, b)
 			}
 
-			END:
+		END:
 		}
 	})
 
@@ -230,7 +231,7 @@ func main() {
 		}
 		//Check sensor data
 		if checkSD(v) {
-			go createMetrics(dbClient, config.DbName, config.DbMesure, v, keypool)
+			go create7688Metrics(dbClient, config.DbName, v, keypool)
 			Vln(4, "[data][new]", v)
 		} else {
 			Vln(4, "[data][err]", v)
@@ -251,7 +252,7 @@ func main() {
 	//--HTTPS-2
 	/*	certManager := autocert.Manager{
 			Prompt:     autocert.AcceptTOS,
-			HostPolicy: autocert.HostWhitelist("u9923001.myddns.me"),
+			HostPolicy: autocert.HostWhitelist(config.DomainName),
 			Cache:      autocert.DirCache("certs"),
 		}
 		htServer := &http.Server{
@@ -328,5 +329,3 @@ func checkT(s string) (x bool) {
 	}
 	return true
 }
-
-

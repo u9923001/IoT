@@ -1,8 +1,8 @@
 {
     "localaddr": ":3001",
+    "domainname":"u9923001.myddns.me",
     "dbaddr": "http://localhost:8086",
     "dbname": "test1",
-    "mesure": "mobile",
     "user": "test",
     "pass": "123456",
     "keydir": "./keys/",

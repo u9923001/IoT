@@ -2,11 +2,13 @@ package main
 
 import (
 	"encoding/json"
-	//"io/ioutil"
 	"fmt"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
+
+	"github.com/influxdata/influxdb/client/v2"
 )
 
 type Lass struct {
@@ -154,12 +156,12 @@ func NewLassCache() *LassCache {
 	return lc
 }
 
-func getJson(url string, id uint32) []byte {
+func getJson(url string, id uint32) *LassRecode {
 	var myClient = &http.Client{Timeout: 10 * time.Second}
 	r, err := myClient.Get(url)
 	if err != nil {
 		fmt.Printf("xxxxxxxxxxxxxxx\r\n")
-		fmt.Println(err)
+		fmt.Println(id, err)
 		fmt.Printf("xxxxxxxxxxxxxxx\r\n")
 		return nil
 	}
@@ -169,7 +171,7 @@ func getJson(url string, id uint32) []byte {
 	err = json.NewDecoder(r.Body).Decode(&t)
 	if err != nil {
 		fmt.Printf("xxxxxxxxxxxxxxx\r\n")
-		fmt.Println(err)
+		fmt.Println(id, err)
 		fmt.Printf("xxxxxxxxxxxxxxx\r\n")
 		return nil
 	}
@@ -198,18 +200,64 @@ func getJson(url string, id uint32) []byte {
 		res.Voltage = v.GetVol()
 
 		recode.Feeds[idx] = res
-		//go createMetrics(ifx, res) // send to DB
 	}
 
-	b, err := json.Marshal(recode)
-	if err != nil {
-		fmt.Println("error:", err)
-	}
-
-	return b
+	return &recode
 }
 
-func GetLassData(sess *Session, lc *LassCache) {
+func lassMetrics(c client.Client, dataBase string, v *LassRecode) {
+
+	bp, err := client.NewBatchPoints(client.BatchPointsConfig{
+		Database:  dataBase,
+		Precision: "m",
+	})
+
+	if err != nil {
+		Vln(3, "[lassMetrics]", err)
+		return
+	}
+
+	for _, v := range v.Feeds {
+		ids := strconv.Itoa(int(v.Id))
+		tags := map[string]string{
+			"Id":        ids,
+			"Device_id": v.Device_id,
+		}
+		fields := map[string]interface{}{
+			"App":         v.App,
+			"Device":      v.Device,
+			"SiteName":    v.SiteName,
+			"Longitude":   v.Longitude,
+			"Latitude":    v.Latitude,
+			"Speed_kmph":  v.Speed_kmph,
+			"Timestamp":   v.Timestamp,
+			"Temperature": v.Temperature,
+			"Barometer":   v.Barometer,
+			"Pm1":         v.Pm1,
+			"Pm25":        v.Pm25,
+			"Pm10":        v.Pm10,
+			"Humidity":    v.Humidity,
+			"Satellites":  v.Satellites,
+			"Voltage":     v.Voltage,
+		}
+		//pt, err := client.NewPoint("sensor", tags, fields, time.Now())
+		pt, err := client.NewPoint("sensor", tags, fields, v.Timestamp)
+		if err != nil {
+			Vln(3, "[lassMetrics]NewPoint:", err)
+			return
+		}
+
+		bp.AddPoint(pt)
+	}
+
+	err = c.Write(bp)
+	if err != nil {
+		Vln(3, "[lassMetrics]Write:", err)
+		return
+	}
+}
+
+func GetLassData(sess *Session, lc *LassCache, dbClient client.Client, dataBase string) {
 
 	var lassUrl = map[uint32]string{
 		0: "https://pm25.lass-net.org/data/last-all-airbox.json",
@@ -222,11 +270,20 @@ func GetLassData(sess *Session, lc *LassCache) {
 
 	for {
 		for idx, url := range lassUrl {
-			buf := getJson(url, idx)
-			fmt.Printf("============\r\n")
-			fmt.Printf("%v %v\r\n", idx, len(buf))
-			fmt.Printf("============\r\n")
-			if buf != nil {
+			res := getJson(url, idx)
+			if res != nil {
+				fmt.Printf("============\r\n")
+				fmt.Printf("%v %v\r\n", idx, len(res.Feeds))
+				fmt.Printf("============\r\n")
+				go lassMetrics(dbClient, dataBase, res) // send to DB
+
+				buf, err := json.Marshal(res)
+				if err != nil {
+					fmt.Println("error:", err)
+					continue
+				}
+
+				buf = append([]byte("lass,"), buf...)
 				lc.Set(int(idx), buf)
 				sess.BroadcastMessage(1, buf)
 			}

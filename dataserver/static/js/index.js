@@ -538,51 +538,47 @@ Map_L.on('popupopen', function(e) {
     };
 });
 
-function getHistory(){
-    $.getJSON(MyDNS+'/sensor/history/'+PtDevID, function(data) {
-    //$.getJSON('https://u9923001.myddns.me/sensor/history/'+PtDevID, function(data) {
-        if(data[0].Series != null){
-            console.log("GET History");
-            var res=[];
-            var d = data[0].Series[0].values;
-            HLtmp = [];
-            HLhum = [];
-            HLbar = [];
-            HLpm1 = [];
-            HLpm25 = [];
-            HLpm10 = [];
-            for (var i = 0, len = d.length; i < len; i++) {
-                var tr = d[i][16];
-                if(tr != null){
-                    var a = d[i][16];
-                    var time =new Date(a.slice(0,19));
-                    switch(PtLayID){
-                        case 1://MAPS
-                            HLtmp.push([time,d[i][15]]);
-                            HLhum.push([time,d[i][5]]);
-                            HLpm25.push([time,d[i][11],d[i][9],d[i][10]]);
-                            HLbar.push([time,d[i][2]]);
-                        break;
-                        case 0://AIRBOX
-                        case 2://LASS
-                        case 3://LASS4U
-                            HLtmp.push([time,d[i][15]]);
-                            HLhum.push([time,d[i][5]]);
-                            HLpm25.push([time,d[i][11],d[i][9],d[i][10]]);
-                        break;
-                        case 4://g0I
-                        case 5://g0P
-                            HLtmp.push([time,d[i][15]]);
-                            HLhum.push([time,d[i][5]]);
-                            HLpm25.push([time,d[i][11]]);
-                        break;
-                    }   
-                }         
-            }
-        }
-        
-    });
-    HSortFin = true;
+function getHistory(data){
+if(data[0].Series != null){
+    console.log("GET History");
+    var res=[];
+    var d = data[0].Series[0].values;
+    HLtmp = [];
+    HLhum = [];
+    HLbar = [];
+    HLpm1 = [];
+    HLpm25 = [];
+    HLpm10 = [];
+    for (var i = 0, len = d.length; i < len; i++) {
+        var tr = d[i][16];
+        if(tr != null){
+            var a = d[i][16];
+            var time =new Date(a.slice(0,19));
+            switch(PtLayID){
+                case 1://MAPS
+                    HLtmp.push([time,d[i][15]]);
+                    HLhum.push([time,d[i][5]]);
+                    HLpm25.push([time,d[i][11],d[i][9],d[i][10]]);
+                    HLbar.push([time,d[i][2]]);
+                break;
+                case 0://AIRBOX
+                case 2://LASS
+                case 3://LASS4U
+                    HLtmp.push([time,d[i][15]]);
+                    HLhum.push([time,d[i][5]]);
+                    HLpm25.push([time,d[i][11],d[i][9],d[i][10]]);
+                break;
+                case 4://g0I
+                case 5://g0P
+                    HLtmp.push([time,d[i][15]]);
+                    HLhum.push([time,d[i][5]]);
+                    HLpm25.push([time,d[i][11]]);
+                break;
+            }   
+        }         
+    }
+}
+HSortFin = true;
 }
 //前後端通訊   
 function LassDecode(data, cb){
@@ -619,20 +615,25 @@ function wsconnect() {
 	};
 	ws.onmessage = function(evt) {
 		//console.log(evt.data);
-		switch(evt.data[0]){
+		var data = evt.data.split(',');
+		var op = data.shift()
+		data = data.join(',')
+		switch(op){
 		case "0":
 			HLGet = true;
-			getHistory();
-			console.log(evt.data);
+			getHistory(data);
 			break;
 		case "5":
 			console.log(evt.data);
 			break;
+		case "lass":
+			console.log(op, data);
+			data = JSON.parse(data)
+			LassDecode(data, function(id,a){
+				console.log(id);
+				upLaPop(id,a);
+			});
 		}
-		LassDecode(JSON.parse(evt.data), function(id,a){
-			console.log(id);
-			upLaPop(id,a);
-		});
 	}; 
 	ws.onerror = function(evt) {
 		console.log("error:", evt);

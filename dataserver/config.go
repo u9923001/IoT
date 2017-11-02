@@ -6,13 +6,13 @@ import (
 )
 
 type Config struct {
-	LocalAddr string `json:"localaddr"`
-	DbAddr    string `json:"dbaddr"`
+	LocalAddr  string `json:"localaddr"`
+	DomainName string `json:"domainname"`
+	DbAddr     string `json:"dbaddr"`
 
-	DbName   string `json:"dbname"`
-	DbMesure string `json:"mesure"`
-	User     string `json:"user"`
-	Pass     string `json:"pass"`
+	DbName string `json:"dbname"`
+	User   string `json:"user"`
+	Pass   string `json:"pass"`
 
 	KeyDir string `json:"keydir"`
 
@@ -49,4 +49,3 @@ func parseJSONConfig(path string) (error, *Config) {
 
 	return nil, c
 }
-
