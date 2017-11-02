@@ -44,7 +44,7 @@ func parseJSONConfig(path string) (error, *Config) {
 	}
 
 	if c.KeyDir == "" {
-		c.KeyDir = "./keys"
+		c.KeyDir = "./keys/"
 	}
 
 	return nil, c
