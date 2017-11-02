@@ -48,7 +48,7 @@ func (p *KeyPool) Get(uid uint32) *ecdsa.PublicKey {
 }
 
 func (p *KeyPool) LoadSet(uid uint32) *Key {
-	uidstr := strconv.Itoa(int(uid))
+	uidstr := strconv.Itoa(int(uid)) + ".key"
 
 	// try load key
 	key, err := NewKey(p.path + uidstr)

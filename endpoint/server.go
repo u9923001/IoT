@@ -11,7 +11,7 @@ import (
 	"os/signal"
 	"strconv"
 	"strings"
-	"sync"
+	//"sync"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -61,51 +61,8 @@ var SerUrl string
 //Gobal state var
 var Gps_test bool
 
-type Wsclient struct {
-	*websocket.Conn
-	id   uint32
-	lock sync.Mutex
-}
-
-type Session struct {
-	nid     uint32
-	lock    sync.RWMutex
-	clients map[uint32]*Wsclient
-}
-
 // save all ws clients
-var sess = &Session{
-	clients: make(map[uint32]*Wsclient),
-}
-
-func (s *Session) Add(ws *websocket.Conn) *Wsclient {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	id := s.nid
-	s.nid += 1
-	c := &Wsclient{ws, id, sync.Mutex{}}
-	s.clients[id] = c
-	return c
-}
-
-func (s *Session) Del(c *Wsclient) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	delete(s.clients, c.id)
-}
-
-func (s *Session) BroadcastMessage(messageType int, data []byte) {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-
-	for _, ws := range s.clients {
-		ws.lock.Lock()
-		ws.WriteMessage(messageType, data)
-		ws.lock.Unlock()
-	}
-}
+var sess = NewSession()
 
 //Send SensorBuf to server
 func httpPost(sev Sensor, conuter *int32, private_key *ecdsa.PrivateKey) {
@@ -147,7 +104,7 @@ func sendDb(private_key *ecdsa.PrivateKey) {
 		go httpPost(SensorBuf, &conuter, private_key)
 
 		//Send to html
-		//		s1 := fmt.Sprintf("%v", SensorBuf)
+		//s1 := fmt.Sprintf("%v", SensorBuf)
 		s1 := SensorBuf.String()
 		s2 := "1" + s1
 		sess.BroadcastMessage(1, []byte(s2))
@@ -268,9 +225,7 @@ func webSocHand(w http.ResponseWriter, r *http.Request) {
 		case '5': //send config
 			s := "0"
 			s += fmt.Sprintf("%v", ConfigBuf)
-			wsconn.lock.Lock()
-			wsconn.WriteMessage(messageType, []byte(s))
-			wsconn.lock.Unlock()
+			wsconn.Send(messageType, []byte(s))
 		}
 
 		continue
