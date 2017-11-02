@@ -263,7 +263,7 @@ var MbUrl = 'https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png32?access_token
 
 var host = location.hostname;
 var port = location.port;
-var ws = new WebSocket("ws://"+host+":"+port+"/socket"); 
+var ws = null;
 var log1,log2;
 var cha1 = [];
 var cha2 = [];
@@ -277,39 +277,45 @@ var map1 = true;
 var Map_L;
 const maxBuf =50;
 //傳資料
-ws.onopen = function(evt) { 
-    console.log("ws open");
-    ws.send("5,open");
-}; 
-ws.onclose = function(evt) { 
-    console.log("ws close"); 
-}; 
-ws.onmessage = function(evt) {
-    switch(evt.data[0]){
-        case "0"://接收設定檔config
-            var n = evt.data.length;
-            var d = evt.data.slice(2,n-1);
-//            var d = evt.data.slice(1,n);
-            log1 = d.split(" ");
-            upInfo();//更新裝置資料
-            //console.log(evt.data);
-        break;
-        case "1"://接收資料data
-            var n = evt.data.length;
-//            var d = evt.data.slice(2,n-1);
-            var d = evt.data.slice(1,n);
-            log2 = d.split(" ");
-            upData();//更新資料顯示
-            //console.log("Get data");
-        break;
-        case "5":
-            console.log(evt.data);
-        break;
-    }
-}; 
-ws.onerror = function(evt) { 
-    console.log("error: "+evt.data);
-};
+function wsconnect() {
+	ws = new WebSocket("ws://"+ window.location.host +"/socket");
+	ws.onopen = function(evt) {
+		console.log("ws open");
+		ws.send("5,open");
+	};
+	ws.onclose = function(evt) {
+		console.log("ws close");
+		var t = setTimeout(wsconnect, 1000)
+	};
+	ws.onmessage = function(evt) {
+		switch(evt.data[0]){
+		case "0"://接收設定檔config
+			var n = evt.data.length;
+			var d = evt.data.slice(2,n-1);
+			//var d = evt.data.slice(1,n);
+			log1 = d.split(" ");
+			upInfo();//更新裝置資料
+			//console.log(evt.data);
+			break;
+		case "1"://接收資料data
+			var n = evt.data.length;
+			//var d = evt.data.slice(2,n-1);
+			var d = evt.data.slice(1,n);
+			log2 = d.split(" ");
+			upData();//更新資料顯示
+			//console.log("Get data");
+			break;
+		case "5":
+			console.log(evt.data);
+			break;
+		}
+	};
+	ws.onerror = function(evt) {
+		console.log("error: "+evt.data);
+	};
+}
+wsconnect()
+
 //更新設定檔
 function upInfo(){
     document.getElementById('ap').value=log1[2]; 
