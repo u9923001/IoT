@@ -205,6 +205,17 @@ func main() {
 					wsconn.Send(1, []byte("0,[]"))
 					goto END
 				}
+				b = append([]byte("0,"), b...)
+				wsconn.Send(messageType, b)
+
+			case "idw": //IDW
+				res, err := queryDB(dbClient, config.DbName, "SELECT Humidity,Latitude,Longitude,Pm25,Temperature FROM sensor WHERE time > now() - 5m")
+				b, err := json.Marshal(res)
+				if err != nil {
+					wsconn.Send(1, []byte("idw,[]"))
+					goto END
+				}
+				b = append([]byte("idw,"), b...)
 				wsconn.Send(messageType, b)
 			}
 
