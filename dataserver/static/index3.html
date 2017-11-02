@@ -1,0 +1,272 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    <title>參數監控</title>
+    <!--jquery-->  
+    <script src="./js/jquery-3.2.1.min.js"></script>
+    <!--semantic-->  
+    <link rel="stylesheet" href="./css/semantic.min.css">
+    <script src="./js/semantic.min.js"></script>
+    <link rel="stylesheet" href="./css/dropdown.css">
+    <script src="./js/dropdown.js"></script>
+    <link rel="stylesheet" href="./css/icon.min.css">
+    
+    <!--socket.io-->  
+    
+    <!--leaflet-->
+    <link rel="stylesheet" href="/css/leaflet.css" />
+    <script src="/js/leaflet.js"></script>
+    
+    <script type="text/javascript" src="http://ewoken.github.io/Leaflet.MovingMarker/MovingMarker.js"></script>
+    
+    <link rel="stylesheet" href="./css/MarkerCluster.css" />
+    <link rel="stylesheet" href="./css/MarkerCluster.Default.css" />
+    <script src="./js/leaflet.markercluster.js"></script>
+    <!--mapbox-->
+    <script src='https://api.mapbox.com/mapbox-gl-js/v0.39.1/mapbox-gl.js'></script>
+    <link href='https://api.mapbox.com/mapbox-gl-js/v0.39.1/mapbox-gl.css' rel='stylesheet' />
+    <!--customer style-->
+    <link rel="stylesheet" href="./css/index.css">
+    
+</head>
+<body>
+
+<!--left popup menu-->
+<div id="left_popup_menu">
+    <div id="left_menu_content">
+    
+        <div id="left_big_head" class="item">
+            <h2 class="ui icon header">
+              <i id="load_icon" class="settings icon"></i>
+              <div class="content">
+                    移動式交通<br>空品監控系統
+              </div>
+            </h2>
+        </div>
+        
+        <div class="ui divided items">
+            <div id="left_menu_item" class="item">
+                <div class="content">
+                </div>
+            </div>
+            <div id="left_menu_item1" class="item">
+                <div id="left_con1" class="content">
+                    <i id="left_icon1" class="large blue leaf icon"></i>
+                    <a id="left_head1" class="header" href="./index.html">即時監測</a>
+                </div>
+            </div>
+            <div id="left_menu_item2" class="item">
+                <div id="left_con2" class="content">
+                    <i id="left_icon2" class="large yellow area chart icon"></i>
+                    <a id="left_head2" class="header" href="./index2.html">動態圖層</a>
+                </div>
+                </div>
+            <div id="left_menu_item3" class="item">
+                <div id="left_con3" class="content">
+                    <i id="left_icon3" class="large inverted user settings icon"></i>
+                    <a id="left_head3" class="header" href="./index3.html">參數監控</a>
+                </div>
+            </div>
+            <div id="left_menu_item" class="item">
+                <div class="content">
+                </div>
+            </div>
+        </div>
+    </div> 
+</div> 
+<!--top menu-->
+<div class="ui fixed inverted main menu">
+    <div class="ui container">
+        <a id="left_menu_btn" class="launch icon item">
+            <i class="content icon">MENU</i>
+        </a>
+    </div> 
+</div>
+<!--center container-->
+<div id="center_container">    
+    <div class="ui two column grid">
+        <!--center container [left side]-->
+        <div class="twelve wide column">
+            <div id="center_container_left">
+                <!--arcgis map view-->
+                <div id="arcgis_map_view">
+                    <!--loading map view-->
+                    <div id="load_map_view">
+                    <h2 class="ui center aligned icon header"><br></h2>
+                    <h2 class="ui center aligned icon header"><br></h2>
+                    <h2 class="ui center aligned icon header"><br></h2>
+                    <h2 class="ui center aligned icon header"><br></h2>
+                    <h2 class="ui center aligned icon header"><br></h2>
+                    <h2 class="ui center aligned icon header">Loading Map...</h2>
+                    </div>
+                </div>
+            </div> 
+        </div>
+        <!--center container [right side]-->
+        <div class="four wide column">
+            <div id="center_container_right">
+                <!--right side menu-->
+                <div class="ui tabular menu">
+                    <a id="right_menu_1" class="item active">
+                    基本設定
+                    </a>
+                    <a id="right_menu_2" class="item">
+                    資料顯示
+                    </a>
+                </div>
+                <!--right side menu container-->
+                <div class="ui container">
+                    <div id="right_container">
+                        <!--page 1-->
+                        <div id="right_page_1" class="ui grid">
+                            <div class="ui segments">
+                                <div class="ui segment"> 
+                                    <!--item 1-->
+                                    <h2 class="ui header">BaseMap</h2>
+                                    <div id="page_1_item_1" class="ui selection dropdown ">
+                                        <input type="hidden" name="Select Base Map">
+                                        <div class="default text">Gender</div>
+                                        <i class="dropdown icon"></i>
+                                        <div class="menu"></div>
+                                    </div>
+                                </div>    
+                                <div class="ui segment">
+                                    <h2 class="ui header">Device</h2>
+                                    <div class="ui middle aligned list">
+                                        <div class="item">
+                                            <!--item 8-->
+                                            <div class="left floated content">
+                                                <div id="page_1_item_8" class="ui checkbox">
+                                                    <input type="checkbox">
+                                                    <label>All</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="item">
+                                            <!--item 2-->
+                                            <div class="left floated content">
+                                                <div id="page_1_item_2" class="ui checkbox">
+                                                    <input type="checkbox">
+                                                    <label id="p1i2">AirBox</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="item">
+                                            <!--item 3-->
+                                            <div class="left floated content">
+                                                <div id="page_1_item_3" class="ui checkbox">
+                                                    <input type="checkbox">
+                                                    <label id="p1i3">MAPS</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="item">
+                                            <!--item 4-->
+                                            <div class="left floated content">
+                                                <div id="page_1_item_4" class="ui checkbox">
+                                                    <input type="checkbox">
+                                                    <label id="p1i4">LASS</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="item">
+                                            <!--item 5-->
+                                            <div class="left floated content">
+                                                <div id="page_1_item_5" class="ui checkbox">
+                                                    <input type="checkbox">
+                                                    <label id="p1i5">LASS4U</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="item">
+                                            <!--item 6-->
+                                            <div class="left floated content">
+                                                <div id="page_1_item_6" class="ui checkbox">
+                                                    <input type="checkbox">
+                                                    <label id="p1i6">g0v Indie</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="item">
+                                            <!--item 7-->
+                                            <div class="left floated content">
+                                                <div id="page_1_item_7" class="ui checkbox">
+                                                    <input type="checkbox">
+                                                    <label id="p1i7">g0v ProbeCube</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="ui segment">
+                                    <h2 class="ui header">Movement</h2>
+                                    <div class="ui middle aligned list">
+                                        <div class="item">
+                                            <!--item 9-->
+                                            <div class="left floated content">
+                                                <div id="page_1_item_9" class="ui checkbox">
+                                                    <input type="checkbox">
+                                                    <label id="p1i9">All</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="item">
+                                            <!--item 10-->
+                                            <div class="left floated content">
+                                                <div id="page_1_item_10" class="ui disabled checkbox">
+                                                    <input type="checkbox" disabled="disabled">
+                                                    <label id="p1i10">Bus</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="item">
+                                            <!--item 11-->
+                                            <div class="left floated content">
+                                                <div id="page_1_item_11" class="ui disabled checkbox">
+                                                    <input type="checkbox" disabled="disabled">
+                                                    <label id="p1i11">Taxi</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="item">
+                                            <!--item 12-->
+                                            <div class="left floated content">
+                                                <div id="page_1_item_12" class="ui disabled checkbox">
+                                                    <input type="checkbox" disabled="disabled">
+                                                    <label id="p1i12">Bike</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>   
+                            </div>
+                        </div>
+                        <!--page 2-->
+                        <div id="right_page_2" class="ui equal width stretched grid">
+                            <div class="column">
+                                <div class="ui segment">
+                                    <!--item 1-->
+                                    
+                                </div>
+                                <div class="ui segment">
+                                    
+                                    
+                                    
+                                </div>
+                            </div>
+                        </div>         
+                    </div>
+                </div>
+            </div> 
+        </div>
+    </div>
+</div>  
+
+</body>
+
+<script src="./js/index3.js"></script>
+
+</html>

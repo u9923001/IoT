@@ -1,0 +1,434 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    <title>即時監測</title>
+    <!--jquery-->  
+    <script src="./js/jquery-3.2.1.min.js"></script>
+    <!--semantic-->  
+    <link rel="stylesheet" href="./css/semantic.min.css">
+    <script src="./js/semantic.min.js"></script>
+    <link rel="stylesheet" href="./css/dropdown.css">
+    <script src="./js/dropdown.js"></script>
+    <link rel="stylesheet" href="./css/icon.min.css">
+    
+    <script src="./js/socket.io-1.3.7.js"></script>
+    <!--leaflet-->
+    <link rel="stylesheet" href="/css/leaflet.css" />
+    <script src="/js/leaflet.js"></script>
+    
+    <script type="text/javascript" src="./js/MovingMarker.js"></script>
+    
+    <link rel="stylesheet" href="./css/MarkerCluster.css" />
+    <link rel="stylesheet" href="./css/MarkerCluster.Default.css" />
+    <script src="./js/leaflet.markercluster.js"></script>
+    <!--mapbox-->
+    <script src='https://api.mapbox.com/mapbox-gl-js/v0.39.1/mapbox-gl.js'></script>
+    <link href='https://api.mapbox.com/mapbox-gl-js/v0.39.1/mapbox-gl.css' rel='stylesheet' />
+    
+    <!--marker style
+    <link rel="stylesheet" href="./css/leaflet-vector-markers.css">
+    <script src="./js/leaflet-vector-markers.js"></script>-->
+    <link rel="stylesheet" href="./css/font-awesome.min.css">
+    <link rel="stylesheet" href="./css/leaflet.extra-markers.min.css">
+    <script src="./js/leaflet.extra-markers.min.js"></script>
+    <link rel="stylesheet" href="./css/leaflet.marker.highlight.css">
+    <script src="./js/leaflet.marker.highlight.js"></script>
+    
+    <!--gauge-->
+    <link rel="stylesheet" href="./css/material-gauge.css">
+    <script src="./js/material-gauge.js"></script>
+        
+    <!--customer style-->
+    <link rel="stylesheet" href="./css/index.css">
+    
+    <!--chart-->
+    <script src="./js/dygraph.min.js"></script>
+    <link rel="stylesheet" src="./css/dygraph.min.css" />
+    
+</head>
+<body>
+
+<!--left popup menu-->
+<div id="left_popup_menu">
+    <div id="left_menu_content">
+        <!--POPUP BOX-->
+        
+            <div id="myModal" class="modal">
+                <div class="modal-content">
+                    <div class="ui piled segment">
+                        <div id="mm">
+                            <div class="ui grid">
+                                <div class="twelve wide column"><div id="m1"></div></div>
+                                <div class="four wide column"><div id="m1_l"></div></div>
+
+                                <div class="twelve wide column"><div id="m2"></div></div>
+                                <div class="four wide column"><div id="m2_l"></div></div>
+
+                                <div class="twelve wide column"><div id="m3"></div></div>
+                                <div class="four wide column"><div id="m3_l"></div></div>
+
+                                <div class="twelve wide column"><div id="m4"></div></div>
+                                <div class="four wide column"><div id="m4_l"></div></div>
+                            </div>
+                            
+                        </div>
+                    </div>
+                </div>
+            </div>
+        
+        
+            <div id="myLoad" class="modal">
+                <div class="modal-content">
+                    <div class="ui piled segment">
+                        <div id="ml" class="ui blue progress">
+                            <div class="bar"></div>
+                            <div class="label">Loading...&nbsp&nbsp<i class="spinner loading icon"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="myAlert" class="modal">
+                <div class="modal-content">
+                    <div class="ui piled segment">
+                        <div id="malert"></div>
+                        <h3 class="ui header">Wait for request data cancel...</h3>
+                        <button id="malbtn" class="ui button">Confirm</button>
+                    </div>
+                </div>
+            </div>
+        <!--left popup menu-->
+        <div id="left_big_head" class="item">
+            <h2 class="ui icon header">
+              <i id="load_icon" class="settings icon"></i>
+              <div class="content">
+                    移動式交通<br>空品監控系統
+              </div>
+            </h2>
+        </div>
+        
+        <div class="ui divided items">
+            <div id="left_menu_item" class="item">
+                <div class="content">
+                </div>
+            </div>
+            <div id="left_menu_item1" class="item">
+                <div id="left_con1" class="content">
+                    <i id="left_icon1" class="large blue leaf  icon"></i>
+                    <a id="left_head1" class="header" href="./index.html">即時監測</a>
+                </div>
+            </div>
+            <div id="left_menu_item2" class="item">
+                <div id="left_con2" class="content">
+                    <i id="left_icon2" class="large yellow area chart icon"></i>
+                    <a id="left_head2" class="header" href="./index2.html">動態圖層</a>
+                </div>
+                </div>
+            <div id="left_menu_item3" class="item">
+                <div id="left_con3" class="content">
+                    <i id="left_icon3" class="large inverted user settings icon"></i>
+                    <a id="left_head3" class="header" href="./index3.html">參數監控</a>
+                </div>
+            </div>
+            <div id="left_menu_item" class="item">
+                <div class="content">
+                </div>
+            </div>
+        </div>
+    </div> 
+</div> 
+<!--top menu-->
+<div class="ui fixed inverted main menu">
+    <div id="top_menu"  class="ui container">
+        <a id="left_menu_btn" class="launch icon item">
+            <i class="content icon">MENU</i>
+        </a>
+    </div> 
+</div>
+<!--center container-->
+<div id="center_container">    
+    <div class="ui two column grid">
+        <!--center container [left side]-->
+        <div id="rpmL" class="twelve wide column">
+            <div id="center_container_left">
+                <!--arcgis map view-->
+                <div id="arcgis_map_view">
+                    <!--loading map view-->
+                    <div id="load_map_view">
+                    <h2 class="ui center aligned icon header"><br></h2>
+                    <h2 class="ui center aligned icon header"><br></h2>
+                    <h2 class="ui center aligned icon header"><br></h2>
+                    <h2 class="ui center aligned icon header"><br></h2>
+                    <h2 class="ui center aligned icon header"><br></h2>
+                    <h2 class="ui center aligned icon header">Loading Map...</h2>
+                    </div>
+                </div>
+            </div> 
+        </div>
+        <!--center container [right side]-->
+        
+        <div id="rpmR" class="four wide column">
+            
+                <div id="center_container_right">
+                    <!--right side menu-->
+                    <div class="ui tabular menu">
+                        <a id="right_menu_1" class="item active">
+                        基本設定
+                        </a>
+                        <a id="right_menu_2" class="item">
+                        資料顯示
+                        </a>
+                    </div>
+                    <!--right side menu container-->
+                    <div class="ui container">
+                        <div id="right_container">
+                            <!--page 1-->
+                            <div id="right_page_1" class="ui grid">
+                                <div class="ui segments">
+                                    <div class="ui segment"> 
+                                        <!--item 1-->
+                                        <h2 class="ui header">BaseMap</h2>
+                                        <div id="page_1_item_1" class="ui selection dropdown ">
+                                            <input type="hidden" name="Select Base Map">
+                                            <div class="default text">Gender</div>
+                                            <i class="dropdown icon"></i>
+                                            <div class="menu"></div>
+                                        </div>
+                                    </div>    
+                                    <div class="ui segment">
+                                        <h2 class="ui header">Device</h2>
+                                        <div class="ui middle aligned list">
+                                            <div class="item">
+                                                <!--item 8-->
+                                                <div class="left floated content">
+                                                    <div id="page_1_item_8" class="ui checkbox">
+                                                        <input type="checkbox">
+                                                        <label>All</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="item">
+                                                <!--item 2-->
+                                                <div class="left floated content">
+                                                    <div id="page_1_item_2" class="ui checkbox">
+                                                        <input type="checkbox">
+                                                        <label id="p1i2">AirBox</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="item">
+                                                <!--item 3-->
+                                                <div class="left floated content">
+                                                    <div id="page_1_item_3" class="ui checkbox">
+                                                        <input type="checkbox">
+                                                        <label id="p1i3">MAPS</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="item">
+                                                <!--item 4-->
+                                                <div class="left floated content">
+                                                    <div id="page_1_item_4" class="ui checkbox">
+                                                        <input type="checkbox">
+                                                        <label id="p1i4">LASS</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="item">
+                                                <!--item 5-->
+                                                <div class="left floated content">
+                                                    <div id="page_1_item_5" class="ui checkbox">
+                                                        <input type="checkbox">
+                                                        <label id="p1i5">LASS4U</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="item">
+                                                <!--item 6-->
+                                                <div class="left floated content">
+                                                    <div id="page_1_item_6" class="ui checkbox">
+                                                        <input type="checkbox">
+                                                        <label id="p1i6">g0v Indie</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="item">
+                                                <!--item 7-->
+                                                <div class="left floated content">
+                                                    <div id="page_1_item_7" class="ui checkbox">
+                                                        <input type="checkbox">
+                                                        <label id="p1i7">g0v ProbeCube</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="ui segment">
+                                        <h2 class="ui header">Movement</h2>
+                                        <div class="ui middle aligned list">
+                                            <div class="item">
+                                                <!--item 9-->
+                                                <div class="left floated content">
+                                                    <div id="page_1_item_9" class="ui checkbox">
+                                                        <input type="checkbox">
+                                                        <label id="p1i9">All</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="item">
+                                                <!--item 10-->
+                                                <div class="left floated content">
+                                                    <div id="page_1_item_10" class="ui disabled checkbox">
+                                                        <input type="checkbox" disabled="disabled">
+                                                        <label id="p1i10">Bus</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="item">
+                                                <!--item 11-->
+                                                <div class="left floated content">
+                                                    <div id="page_1_item_11" class="ui disabled checkbox">
+                                                        <input type="checkbox" disabled="disabled">
+                                                        <label id="p1i11">Taxi</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="item">
+                                                <!--item 12-->
+                                                <div class="left floated content">
+                                                    <div id="page_1_item_12" class="ui disabled checkbox">
+                                                        <input type="checkbox" disabled="disabled">
+                                                        <label id="p1i12">Bike</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>   
+                                </div>
+                            </div>
+                            <!--page 2-->
+                            <div id="right_page_2" class="ui equal width stretched grid">
+                                <div class="ui segments">
+                                    <div class="ui segment">
+                                        <h2 class="ui header">空氣品質</h2>                                
+                                        <div class="ui grid">
+                                            <div id="right_i1" class="six wide column">
+                                                <div id="ri1"></div>
+                                            </div>
+                                            <div id="right_i2" class="ten wide column">
+                                                <div id="ri2"></div>
+                                            </div>
+                                        </div>
+                                        <div class="ui grid">
+                                            <div id="right_i3" class="six wide column">
+                                                <h4 class="ui header">更新時間:&nbsp;&nbsp;</h4>
+                                            </div>
+                                            <div id="right_i4" class="ten wide column">
+                                                <p id="d_tz"><p>
+                                            </div>
+                                        </div>
+                                    </div>    
+                                    <div class="ui segment">
+                                        <h2 class="ui header">溫濕度</h2>
+                                        <div class="ui grid">
+                                            <div id="right_i1" class="eight wide column">
+                                                <div id="ri3">
+                                                    <div class="thermometer"><span id="t_text"></span></div>
+                                                    <div class="thermometer1"></div>
+                                                    <div  id="tp_scl" class="thermometer2"></div>
+                                                </div>
+                                            </div>
+                                            <div id="right_i2" class="eight wide column">
+                                                <div id="ri4">
+                                                    <div class="gauge" id="myGauge">
+                                                    <div class="gauge__container">
+                                                    <div class="gauge__marker"></div>
+                                                    <div class="gauge__background"></div>
+                                                    <div class="gauge__center"></div>
+                                                    <div class="gauge__data"></div>
+                                                    <div class="gauge__needle"></div>
+                                                    </div>
+                                                    <div class="gauge__labels mdl-typography__headline">
+                                                    <span class="gauge__label--low">0%</span>
+                                                    <span id="g_text" class="gauge__label--spacer"></span>
+                                                    <span class="gauge__label--high">100%</span>
+                                                    </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="ui segment">
+                                        <div class="ui accordion">
+                                            <div id="right_d1" class="title">
+                                                <h2 class="ui header" style="margin-right: 40px;">
+                                                    <i class="dropdown icon"></i>
+                                                    詳細資料
+                                                </h2>                                            
+                                            </div>
+                                            <div id="right_d2" class="content">
+                                                <table class="ui very basic collapsing celled table">
+                                                    <thead>
+                                                    </thead>
+                                                    <tbody>
+                                                        <tr>
+                                                            <td>名稱</td>
+                                                            <td id="d_se"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td>裝置</td>
+                                                            <td id="d_de"></td>
+                                                        </tr>
+                                                    <tbody>
+                                                </table>
+                                                <table class="ui very basic collapsing celled table">
+                                                    <thead>
+                                                    </thead>
+                                                    <tbody>
+                                                        <tr>
+                                                            <td>溫度</td>
+                                                            <td id="d_te"></td>
+                                                            <td>濕度</td>
+                                                            <td id="d_hy"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td>氣壓</td>
+                                                            <td id="d_br"></td>
+                                                            <td>Pm1</td>
+                                                            <td id="d_p1"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td>Pm2.5</td>
+                                                            <td id="d_p5"></td>
+                                                            <td>Pm10</td>
+                                                            <td id="d_p0"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td>電量</td>
+                                                            <td id="d_ve"></td>
+                                                            <td>衛星數</td>
+                                                            <td id="d_ste"></td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>         
+                        </div>
+                    </div>
+                </div> 
+            
+        </div>
+    </div>
+</div>  
+
+</body>
+
+<script src="./js/index.js"></script>
+
+</html>

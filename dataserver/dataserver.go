@@ -9,56 +9,13 @@ import (
 	"strconv"
 	"unicode"
 	//"time"
+
 	com "../common"
+	"github.com/gorilla/websocket"
 	"github.com/influxdata/influxdb/client/v2"
 )
 
 var configFile = flag.String("c", "config.json", "config file")
-
-type Config struct {
-	LocalAddr string `json:"localaddr"`
-	DbAddr    string `json:"dbaddr"`
-
-	DbName   string `json:"dbname"`
-	DbMesure string `json:"mesure"`
-	User     string `json:"user"`
-	Pass     string `json:"pass"`
-
-	KeyDir string `json:"keydir"`
-
-	Log  string `json:"log"`
-	Verb int    `json:"verb"`
-}
-
-func parseJSONConfig(path string) (error, *Config) {
-	file, err := os.Open(path) // For read access.
-	if err != nil {
-		return err, nil
-	}
-	defer file.Close()
-
-	c := &Config{}
-	c.Verb = 3
-
-	err = json.NewDecoder(file).Decode(c)
-	if err != nil {
-		return err, nil
-	}
-
-	if c.LocalAddr == "" {
-		c.LocalAddr = ":3001"
-	}
-
-	if c.DbAddr == "" {
-		c.DbAddr = "http://localhost:8086"
-	}
-
-	if c.KeyDir == "" {
-		c.KeyDir = "./keys"
-	}
-
-	return nil, c
-}
 
 //Sensor data struct
 type Sensor = com.Sensor
@@ -140,6 +97,23 @@ func createMetrics(c client.Client, dataBase string, mesure string, v Sensor, ke
 	}
 }
 
+// run Query on influxDB
+func queryDB(clnt client.Client, dataBase string, cmd string) (res []client.Result, err error) {
+	q := client.Query{
+		Command:  cmd,
+		Database: dataBase,
+	}
+	if response, err := clnt.Query(q); err == nil {
+		if response.Error() != nil {
+			return res, response.Error()
+		}
+		res = response.Results
+	} else {
+		return res, err
+	}
+	return res, nil
+}
+
 //Check string
 func checkSD(v Sensor) (x bool) {
 	x = false
@@ -180,11 +154,65 @@ func main() {
 	}
 
 	dbClient := influxDBClient(config.User, config.Pass)
+	sess := NewSession()
+
+	//定時抓資料
+	lcache := NewLassCache()
+	go GetLassData(sess, lcache)
+
 
 	myRouter := http.NewServeMux()
 
+	//LASS感測器資料
+	myRouter.HandleFunc("/socket", func(w http.ResponseWriter, r *http.Request) {
+		upgrader := websocket.Upgrader{
+		//ReadBufferSize:  1024,
+		//WriteBufferSize: 1024,
+		}
+		conn, _ := upgrader.Upgrade(w, r, nil)
+		defer conn.Close()
+
+		list := lcache.GetAll()
+		fmt.Println("[ws]", len(list))
+		for _, buf := range list {
+			conn.WriteMessage(1, buf)
+		}
+
+		wsconn := sess.Add(conn)
+		defer sess.Del(wsconn)
+
+		for {
+			messageType, message, err := conn.ReadMessage()
+			if err != nil {
+				return
+			}
+
+			mlen := len(message)
+			com := message[0]
+			sb := message[2:mlen]
+			//fmt.Println(message)
+			switch com {
+			case '0': //history
+				str := string(sb)
+				res, err := queryDB(dbClient, config.DbName, "SELECT * FROM sensor WHERE Device_id = '"+str+"' AND time > now() - 1d")
+				if err != nil {
+					wsconn.Send(1, []byte(""))
+					goto END
+				}
+				b, err := json.Marshal(res)
+				if err != nil {
+					wsconn.Send(1, []byte(""))
+					goto END
+				}
+				wsconn.Send(messageType, b)
+			}
+
+			END:
+		}
+	})
+
 	//Handle 7688 send to db
-	myRouter.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	myRouter.HandleFunc("/sensor", func(w http.ResponseWriter, r *http.Request) {
 
 		// only POST
 		if r.Method != http.MethodPost {
@@ -209,8 +237,31 @@ func main() {
 		}
 	})
 
+	fsHandle := http.StripPrefix("/", http.FileServer(http.Dir("./static/")))
+	myRouter.Handle("/", fsHandle)
+
 	Vln(1, "bind @", config.LocalAddr)
+
+	//--HTTP
 	http.ListenAndServe(config.LocalAddr, myRouter)
+
+	//--HTTPS-1
+	//http.ListenAndServeTLS(config.LocalAddr, "server.crt", "server.key", myRouter)
+
+	//--HTTPS-2
+	/*	certManager := autocert.Manager{
+			Prompt:     autocert.AcceptTOS,
+			HostPolicy: autocert.HostWhitelist("u9923001.myddns.me"),
+			Cache:      autocert.DirCache("certs"),
+		}
+		htServer := &http.Server{
+			Addr:    config.LocalAddr,
+			Handler: myRouter,
+			TLSConfig: &tls.Config{
+				GetCertificate: certManager.GetCertificate,
+			},
+		}
+		htServer.ListenAndServeTLS("", "")*/
 
 }
 
@@ -278,58 +329,4 @@ func checkT(s string) (x bool) {
 	return true
 }
 
-/*
-func check(v Sensor) (x bool) {
-	x = false
 
-	if checkU8(v.Voltage, 0, 100) {
-		return
-	}
-	if checkU8(v.Satellites, 0, 50) {
-		return
-	}
-	if checkU8(v.Humidity, 0, 100) {
-		return
-	}
-/*	if checkU16(v.Pm1, 0, 65535) {
-		return
-	}
-	if checkU16(v.Pm25, 0, 65535) {
-		return
-	}
-	if checkU16(v.Pm10, 0, 65535) {
-		return
-	}
-	if checkU16(v.Barometer, 0, 65535) {
-		return
-	}///
-	if checkI16(v.Temperature, -1000, 1000) {
-		return
-	}
-	if checkU16(v.Speed_kmph, 0, 500) {
-		return
-	}
-	if v.Timestamp >= 0 && v.Timestamp <= 4294967295 {
-		return
-	}
-	if checkF32(v.Longitude, -180, 180) {
-		return
-	}
-	if checkF32(v.Latitude, -90, 90) {
-		return
-	}
-
-	if checkT(v.SiteName) {
-		return
-	}
-
-	if checkR(v.Device_id) {
-		return
-	}
-
-	if checkR(v.Device) {
-		return
-	}
-	return true
-}
-*/
