@@ -2,14 +2,14 @@ package main
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
-	"unicode"
 	"time"
-	"regexp"
+	"unicode"
 )
 
-func parseTimeStr(_date,_time string) time.Time {
+func parseTimeStr(_date, _time string) time.Time {
 
 	var t time.Time
 	timeFormat := "150405020106"
@@ -62,15 +62,15 @@ func checkR(s string) (x bool) {
 			last = true
 			continue
 		}
-		if (c >= 'a' && c <= 'z') {
+		if c >= 'a' && c <= 'z' {
 			last = false
 			continue
 		}
-		if (c >= 'A' && c <= 'Z') {
+		if c >= 'A' && c <= 'Z' {
 			last = false
 			continue
 		}
-		if (c >= '0' && c <= '9') {
+		if c >= '0' && c <= '9' {
 			last = false
 			continue
 		}
@@ -92,19 +92,19 @@ func checkT(s string) (x bool) {
 			last = true
 			continue
 		}
-		if (c >= 'a' && c <= 'z') {
+		if c >= 'a' && c <= 'z' {
 			last = false
 			continue
 		}
-		if (c >= 'A' && c <= 'Z') {
+		if c >= 'A' && c <= 'Z' {
 			last = false
 			continue
 		}
-		if (c >= '0' && c <= '9') {
+		if c >= '0' && c <= '9' {
 			last = false
 			continue
 		}
-		if unicode.In(c, unicode.Han){
+		if unicode.In(c, unicode.Han) {
 			last = false
 			continue
 		}
@@ -112,4 +112,3 @@ func checkT(s string) (x bool) {
 	}
 	return true
 }
-
