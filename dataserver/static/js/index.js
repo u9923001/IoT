@@ -3,8 +3,8 @@
 'Imagery © <a href="http://mapbox.com">Mapbox</a>';
 
 const MbUrl = 'https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png32?access_token=pk.eyJ1IjoidTk5MjMwMDEiLCJhIjoiY2o3YWdqeGZoMGZhZDJxbzFtZ2wxMWswZiJ9.rieTxvxJSPfaerXHPjMIiA';
-const MyDNS = "http://" + window.location.host;
-const MyWS = "ws://" + window.location.host;
+const MyDNS = "https://" + window.location.host;
+const MyWS = "wss://" + window.location.host;
 //const MyDNS = "https://u9923001.myddns.me";
 //const MyWS = "wss://u9923001.myddns.me";
 //建立感測點Marker
@@ -16,13 +16,19 @@ var SenIcon = function(icon, color){
     prefix: 'fa'}
 };
 var _senMark = new Array(6);
+var _senMarkColor=['#A42D00','#888800','#227700','#00BBFF','#000088','#770077'];
 _senMark[0] = new SenIcon('fa-building','#A42D00');
 _senMark[1] = new SenIcon('fa-building','#888800');
 _senMark[2] = new SenIcon('fa-building','#227700');
 _senMark[3] = new SenIcon('fa-building','#00BBFF');
 _senMark[4] = new SenIcon('fa-building','#000088');
 _senMark[5] = new SenIcon('fa-building','#770077');
-
+var _movMark = L.ExtraMarkers.icon({
+    icon: 'fa-car',
+    markerColor: 'red',
+    shape: 'star',
+    prefix: 'fa'
+});
 //存checkbox、socketIO狀態
 var CbState = [false,false,false,false,false,false,false];
 var SkioState = [false,false,false,false,false,false];
@@ -91,18 +97,23 @@ getLocation(function(a){
 },function(){console.log("gps error")});
 
 ////////定時更新座標
-var updateGPS = setInterval(function(){
-    getLocation(function(a){    
-        var lat = a.coords.latitude;
-        var lng = a.coords.longitude;
-        UserMarker.moveTo([lat+ppp,lng+qqq],[2500]);
-        UserMarker.start();
-    },function(){console.log("gps error")})
-},2500);
-
+var stT=new Date();
+var updateGPS = function(){
+    requestAnimationFrame(updateGPS);
+    edT =new Date();
+    if(edT.getTime()-stT.getTime()>100){
+        stT=new Date(); 
+        getLocation(function(a){    
+            var lat = a.coords.latitude;
+            var lng = a.coords.longitude;
+            UserMarker.moveTo([lat+ppp,lng+qqq],[500]);
+            UserMarker.start();
+        },function(){console.log("gps error")});
+    }
+};
 //////建立地圖上面的按鈕
 //control position - allowed: 'topleft', 'topright', 'bottomleft', 'bottomright'
-var newMapBtn = function creatMapBtn(map, position, bgcolor,inHTML,onclickFun){ 
+var newMapBtn = function creatMapBtn(map, position, bgcolor,inHTML,onclickFun,w,h,id){ 
     return L.Control.extend({
         options: {
             position: position
@@ -110,43 +121,51 @@ var newMapBtn = function creatMapBtn(map, position, bgcolor,inHTML,onclickFun){
         onAdd: function (map) {
             var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
             container.style.backgroundColor = bgcolor;
-            container.style.width = '38px';
-            container.style.height = '38px';
+            container.style.width = w;
+            container.style.height = h;
             container.value = 0;
             container.innerHTML = inHTML;
             container.onclick = onclickFun;
+            container.id = id;
             return container;
         }
     });
 }
-var traceBtn = newMapBtn(Map_L,'topleft','white','<i class="fa fa-crosshairs fa-3x" aria-hidden="true"></i>',function(){getLocation(function(a){Map_L.setView([a.coords.latitude,a.coords.longitude],17);},function(){console.log("gps error")})});
-var homeBtn = newMapBtn(Map_L,'topleft','white','<i class="fa fa-home fa-3x" aria-hidden="true"></i>',function(){getLocation(function(a){Map_L.setView([a.coords.latitude,a.coords.longitude],15);},function(){console.log("gps error")})});
+var traceBtn = newMapBtn(Map_L,'topleft','white','<i class="fa fa-crosshairs fa-3x" aria-hidden="true"></i>',function(){getLocation(function(a){Map_L.setView([a.coords.latitude,a.coords.longitude],17);},function(){console.log("gps error")})},'38px','38px');
+var homeBtn = newMapBtn(Map_L,'topleft','white','<i class="fa fa-home fa-3x" aria-hidden="true"></i>',function(){getLocation(function(a){Map_L.setView([a.coords.latitude,a.coords.longitude],15);},function(){console.log("gps error")})},'38px','38px');
 
+var toollist = newMapBtn(Map_L,'bottomright','','<div class="ui list"><div id="to2l" class="item">AirBox</div><div id="to3l" class="item">MAPS</div><div id="to4l" class="item">LASS</div><div id="to5l" class="item">LASS4U</div><div id="to6l" class="item">g0v Indie</div><div id="to7l" class="item">g0v ProbeCube</div></div>','','70px','125px','to8l');
 Map_L.addControl(new traceBtn());
 Map_L.addControl(new homeBtn());
+Map_L.addControl(new toollist());
 
 ///////////Marker Group 插件-減少Marker數量
 var MkCGp = L.markerClusterGroup({ disableClusteringAtZoom : 15,spiderfyOnMaxZoom: true, showCoverageOnHover: true, zoomToBoundsOnClick: true });
+var device_id_log=[];
 //////////建立Marker圖層
 function creatMkLyr(lyrIds, data){
     //console.log(lyrIds,data);
-    var res=[];
-    var redMarker;
-    var aherf="";
-    //切換感測點ICON
-    redMarker = L.ExtraMarkers.icon(_senMark[lyrIds]);
-    //建立Marker
-    for (var i = 0, len = data.length; i < len; i++) {
-        var mk = L.marker(
-            L.latLng(data[i].Latitude, data[i].Longitude), {icon: redMarker, attributes: data[i], layerid : lyrIds});        
-        
-        //插入Marker popup事件
-        MkCGp.addLayer(mk.bindPopup('<button id="'+data[i].Device_id+'" class="ui inverted blue button">查詢歷史資料</button>'));
-        res.push(mk);
+    if(!SkioState[lyrIds]){
+        var res=[];
+        var redMarker;
+        var aherf="";
+        //切換感測點ICON
+        redMarker = L.ExtraMarkers.icon(_senMark[lyrIds]);
+        //建立Marker
+        for (var i = 0, len = data.length; i < len; i++) {
+            //ifdevice_id_log.find(data[i].Device_id)
+            var mk = L.marker(
+                L.latLng(data[i].Latitude, data[i].Longitude), {icon: redMarker, attributes: data[i], layerid : lyrIds});        
+            
+            //插入Marker popup事件
+            MkCGp.addLayer(mk.bindPopup('<button id="'+data[i].Device_id+'" class="ui inverted blue button">查詢歷史資料</button>'));
+            res.push(mk);
+        }
+        //加到圖層
+        Map_L.addLayer(MkCGp);
+        LaMkData[lyrIds] = res;
+        SkioState[lyrIds]=true;
     }
-    //加到圖層
-    Map_L.addLayer(MkCGp);
-    LaMkData[lyrIds] = res;
 }
 
 ////////刪除Marker圖層
@@ -473,10 +492,10 @@ function popHWd(){
     //顯示視窗
     
     btmPopup(false);
-    if(!(PopState & 0x04)){
+    //if(!(PopState & 0x04)){
         rightPopup(true);
         //console.log("right popup");
-    }
+    //}
     //畫圖
     creatHChart();    
 }
@@ -491,7 +510,7 @@ Map_L.on('click', function(e) {
     //console.log("Map_L click",PopState);
     //底部彈出視窗復原
     btmPopup(false,0);
-    rightPopup(false);
+    //rightPopup(false);
     leftPopup(false);
 });
 
@@ -596,11 +615,66 @@ function LassDecode(data, cb){
 	console.log('[LassDecode]', id, res);
 	if(typeof id != 'undefined') {
 		LassData[id] = res;
-		SkioState[id] = true;
+        creatMkLyr(id,LassData[id]);
 		cb(id,LassData[id]);
 	}
 }
 
+var MobileData=new Array(2);
+function Decode7688(data, cb){
+	var d = data[0].Series[0].values;
+    var i = d.length-1;
+    var tr = d[i][16];
+    if(tr != null){
+        var a = d[i][16];
+        var time =new Date(a.slice(0,19));
+        var v={
+            "App"        : d[i][1],
+            "Barometer"  : d[i][2],
+            "Device"     : d[i][3],
+            "Device_id"  : d[i][4],
+            "Humidity"   : d[i][5],
+            "Id"         : parseInt(d[i][6]),
+            "Latitude"   :d[i][7],
+            "Longitude"  :d[i][8],
+            "Pm1"        :d[i][9],
+            "Pm10"       :d[i][10],
+            "Pm25"       :d[i][11],
+            "Satellites" :d[i][12],
+            "SiteName"   :d[i][13],
+            "Speed_kmph" :d[i][14],
+            "Temperature":d[i][15],
+            "Timestamp"  :time,
+            "Voltage"    :d[i][18]
+        }
+        MobileData[0] = v;
+    }
+	console.log('[7688Decode]');//,MobileData[0].Id,MobileData[0]);
+    cb(MobileData[0].id,MobileData[0]);
+}
+var MovMark=false,first_mov=true;
+var MobileMark=[];
+function creatMovMkLyr(id,a){
+    if(!MovMark){
+        var lat = a.Latitude;
+        var lng = a.Longitude;
+        var parisKievLL = [[lat,lng]];//,{icon: userMk} 
+        var v = L.Marker.movingMarker(parisKievLL, [],{icon: _movMark});
+        Map_L.addLayer(v);
+        MobileMark.push(v);
+        first_mov = false;
+        MovMark = true;
+        console.log("crt mov",MovMark);
+    }
+};
+////////刪除Marker圖層
+function deletMovMkLyr(lyrIds){
+    var data = MobileMark;
+    for (var i = 0, len = data.length; i < len; i++) {
+        Map_L.removeLayer(data[i]);
+    }
+    console.log("del mov",MovMark);
+}
 var wsUri = MyWS+"/socket";
 var ws = null;
 function wsconnect() {
@@ -620,14 +694,26 @@ function wsconnect() {
 		data = data.join(',')
 		switch(op){
 		case "0":
+            console.log(op, data);
 			HLGet = true;
+            data = JSON.parse(data)
 			getHistory(data);
 			break;
 		case "5":
 			console.log(evt.data);
 			break;
+        case "mobile":
+            data = JSON.parse(data)
+			//console.log(op,data);
+            Decode7688(data, function(id,a){
+				//console.log(a);
+                if(first_mov)
+                    creatMovMkLyr(id,a);
+				REQ_7688_S = false;
+			});
+			break;
 		case "lass":
-			console.log(op, data);
+			//console.log(op, data);
 			data = JSON.parse(data)
 			LassDecode(data, function(id,a){
 				console.log(id);
@@ -639,8 +725,15 @@ function wsconnect() {
 		console.log("error:", evt);
 	};
 }
-wsconnect()
+wsconnect();
 
+var REQ_7688_S = false;
+var REQ_7688 = setInterval(function(){ 
+    if(!REQ_7688_S){
+        REQ_7688_S = true;
+        ws.send("mobile,U9923001");
+    }
+}, 2000);
 //接收LASS歷史資料
 /*socket.on('get_HL', function(data) {
     HLGet = true;
@@ -649,6 +742,7 @@ wsconnect()
     sortHLData(data);
 });*/
 window.onbeforeunload  = function(){
+    clearInterval(REQ_7688);
     ws.onclose = function () {}; // disable onclose handler first
     ws.close()
     console.log("close ws");
@@ -723,7 +817,7 @@ function CSSInit(){
         ticking = true;
     });
     //右側彈出視窗
-    var _rightPM = document.getElementById("rightPM");
+    /*var _rightPM = document.getElementById("rightPM");
     var ticking1 = false;
     _rightPM.addEventListener("scroll",function() {
         if (!ticking) {
@@ -736,7 +830,44 @@ function CSSInit(){
             });
         }
         ticking1 = true;
-    });
+    });*/
+    
+    //改顏色
+    var ck2l = document.getElementById("ck2l");
+    var ck3l = document.getElementById("ck3l");
+    var ck4l = document.getElementById("ck4l");
+    var ck5l = document.getElementById("ck5l");
+    var ck6l = document.getElementById("ck6l");
+    var ck7l = document.getElementById("ck7l");
+    ck2l.style.color = _senMarkColor[0];
+    ck3l.style.color = _senMarkColor[1];
+    ck4l.style.color = _senMarkColor[2];
+    ck5l.style.color = _senMarkColor[3];
+    ck6l.style.color = _senMarkColor[4];
+    ck7l.style.color = _senMarkColor[5];
+    
+}
+function toollistColor(){
+    var to2l = document.getElementById("to2l");
+    var to3l = document.getElementById("to3l");
+    var to4l = document.getElementById("to4l");
+    var to5l = document.getElementById("to5l");
+    var to6l = document.getElementById("to6l");
+    var to7l = document.getElementById("to7l");
+    var to8l = document.getElementById("to8l");
+    to2l.style.color = _senMarkColor[0];
+    to3l.style.color = _senMarkColor[1];
+    to4l.style.color = _senMarkColor[2];
+    to5l.style.color = _senMarkColor[3];
+    to6l.style.color = _senMarkColor[4];
+    to7l.style.color = _senMarkColor[5];
+    to8l.style.border = 'rgba(255,255,255,0.0)';
+    to8l.onmouseover = function(){
+        to8l.style.backgroundColor = 'rgba(255,255,255,0.7)';
+    };
+    to8l.onmouseout = function(){
+        to8l.style.backgroundColor = 'rgba(255,255,255,0.0)';
+    };
 }
 //視窗大小變化時
 function windowResize(){
@@ -748,20 +879,15 @@ function windowResize(){
 }
 
 function rightPopup(popup){
-    var _rightPM = document.getElementById("rightPM");
-    var l = parseInt(_rightPM.style.right,10);
-    var w = window.innerWidth;
+    //var _rightPM = document.getElementById("rightPM");
+    //var l = parseInt(_rightPM.style.right,10);
+    //var w = window.innerWidth;
     //console.log("rp: ",popup,l);
     if(popup){
         PopState |= 0x04;
-        menuAnimate(true,0x04,_rightPM,l,320);
+        $('#rightPM').transition('show');
     }else{
-        if(PopState & 0x04){
-            _rightPM.scrollLeft = 0;
-            _rightPM.style.width = 320+'px';
-            menuAnimate(false,0x04,_rightPM,l,320);
-            PopState &= ~0x04;
-        }
+        $('#rightPM').transition('hide');
     }
 }
 
@@ -812,15 +938,17 @@ function topBtnClick(){
     var _myLoad = document.getElementById("myLoad");
     var _mm = document.getElementById("mm");
     var _cPMclose = document.getElementById("cPMclose");
-        
+    var _rPMclose = document.getElementById("rPMclose");
+    var _rightPM = document.getElementById("rightPM");
     _leftPM.style.left = '-240px';
     _bottomPM.style.bottom = '-145px';
     
-    _rightPM.style.height = "450px";
+    /*_rightPM.style.height = "450px";
     _rightPM.style.width = '320px';
     _rightPM.style.right = '-320px';
     _rightPMC.style.height = "450px";
-    _rightPMC.style.width = 400+'px';
+    _rightPMC.style.width = 400+'px';*/
+    //$('#rightPM').transition('hide');
     _mm.style.height = "450px";
     _mm.style.width = 400+'px';
     
@@ -833,13 +961,19 @@ function topBtnClick(){
     _cMenubtn.onclick = function(){
         _cPM.style.display = 'block';
         PopState |= 0x02;
-        if(PopState & 0x04)rightPopup(false);
+        //if(PopState & 0x04)rightPopup(false);
         //console.log(PopState);
+    };
+    /*_rightPM.onclick = function(){
+        $('#rightPM').transition('hide');
+    };*/
+    _rPMclose.onclick = function(){
+        $('#rightPM').transition('hide');
     };
     _cPMclose.onclick = function(){
         _cPM.style.display = 'none';
         PopState &= ~0x02;
-        console.log("123");
+        //console.log("123");
     };
     window.onclick = function(event) {
         if (event.target == _cPM) {
@@ -854,6 +988,17 @@ function topBtnClick(){
         }
     }
     
+    var lastScrollTop = 0;
+    $("#rightScroll").scroll(function (event) {
+        var st = $(this).scrollTop();
+        console.log(st);
+        if (st > lastScrollTop) {
+            $('rPMclose').animate({top: '-=10'}, 10);
+        } else {
+            $('rPMclose').animate({top: '+=10'}, 10);
+        }
+        lastScrollTop = st;
+    });
 }
 
 //彈出動畫設定用
@@ -947,34 +1092,60 @@ function setCheckBox(){
                     alert("Lass data not yet");
                 }else{*/
                     CbState[id] = true;
-                    changCheckBox(cb,true);
-                    creatMkLyr(id-1,LassData[id-1]);
+                    //changCheckBox(cb,true);
+                    if(id!=7){
+                        if(SkioState[id-1]){//已有圖
+                            
+                        }else{
+                            creatMkLyr(id-1,LassData[id-1]);
+                        }
+                    }else{
+                        if(MovMark){//已有圖
+                        
+                        }else{
+                            creatMovMkLyr(10,MobileData[0]);
+                        }
+                    }
+                    //console.log(SkioState[id-1]);
                 //}
             },
             onUnchecked: function() {
-                if(_cb1st[id]){
-                    
-                }else{
+                
                     CbState[id] = false;
-                    changCheckBox(cb,false);
-                    deletMkLyr(id-1);
-                }
+                    //changCheckBox(cb,false);
+                    if(id!=7){
+                        if(SkioState[id-1]){//已有圖
+                            deletMkLyr(id-1);
+                            SkioState[id-1]=false;
+                        }else{
+                            
+                        }
+                    }else{
+                        if(MovMark){//已有圖
+                            deletMovMkLyr(id-1);
+                            MovMark=false;
+                        }else{
+                            
+                        }
+                    }
+                    //console.log(SkioState[id-1]);
+                
             }   
         });    
     }
     //建立重複事件
-    for(var i=0; i<8; i++){
+    for(var i=1; i<8; i++){
         _cb[i] = $(htmlID[i]);
         if(i>0){
-            _cb[i].checkbox('uncheck');
+            _cb[i].checkbox('check');
             //_cb[i].checkbox('set disabled');
-            if(i!=7){
+            //if(i!=7){
                 _cbEvent[i-1] =ckEvent(_cb[i],_cb[0],i);
-            }
+            //}
         }
     }
     //"all" checkbox event
-    _cb[0].checkbox({
+    /*_cb[0].checkbox({
         onChecked: function() {
             CbState[0] = true;
             if(!_cb1st[1])_cb[1].checkbox('check');
@@ -993,7 +1164,7 @@ function setCheckBox(){
             if(!_cb1st[5])_cb[5].checkbox('uncheck');
             if(!_cb1st[6])_cb[6].checkbox('uncheck');
         }
-    });
+    });*/
             
 }
 
@@ -1053,3 +1224,4 @@ function distance(lat1, lon1, lat2, lon2) {
     var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
     return earthRadiusKm * c * 1000;//meter
 }
+toollistColor();

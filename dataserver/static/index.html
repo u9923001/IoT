@@ -67,22 +67,22 @@
                     <i class="dropdown icon"></i>
                     <div class="menu"></div>
                 </div>
-                <div id="cPMclose" class="close">
+                <div id="cPMclose" class="close" style="position: fixed; margin-top: -12%; margin-left: 69%;">
                 X
                 </div>
             </div>    
             <div class="ui green segment">
                 <h2 class="ui header">Device</h2>
                 <div class="ui middle aligned list">
-                    <div class="item">
-                        <!--item 8-->
+                    <!--<div class="item">
+                        item 8
                         <div class="left floated content">
                             <div id="ck1" class="ui checkbox">
                                 <input type="checkbox">
                                 <label>All</label>
                             </div>
                         </div>
-                    </div>
+                    </div>-->
                     <div class="item">
                         <!--item 2-->
                         <div class="left floated content">
@@ -156,6 +156,36 @@
         </div>
     </div>
 </div>
+<!--right popup menu-->
+<div id="rightPM" class="modal">
+    <div id="rightPMC" class="modal-content">
+        <div id="rightScroll" class="ui piled segment" style="overflow: auto;">
+            <div id="rPMclose" class="close" style="position: fixed; margin-left: 70%;">
+                X
+            </div>
+            <div id="mm">
+                <div class="ui four stackable column grid">
+                    <div class="ui grid" style="height:380px;margin-top:14px;">                       
+                        <div id="m1" style="z-index:20;"></div>
+                        <div id="m1_1" style="text-align: right;background-color: rgba(255,255,255,0.8);margin-top:8%;margin-left:40%;position:absolute;z-index:20;width:200px;"></div>
+                    </div>
+                    <div class="ui grid" style="height:380px">
+                        <div id="m2"></div>
+                        <div id="m2_1" style="text-align: right;background-color: rgba(255,255,255,0.8);margin-top:8%;margin-left:40%;position:absolute;z-index:20;width:200px;"></div>
+                    </div>
+                    <div class="ui grid" style="height:380px">
+                        <div id="m3"></div>
+                        <div id="m3_1" style="text-align: right;background-color: rgba(255,255,255,0.8);margin-top:8%;margin-left:40%;position:absolute;z-index:20;width:200px;"></div>
+                    </div>
+                    <div class="ui grid" style="height:380px">
+                        <div id="m4"></div>
+                        <div id="m4_1" style="text-align: right;background-color: rgba(255,255,255,0.8);margin-top:8%;margin-left:40%;position:absolute;z-index:20;width:200px;"></div>
+                    </div>  
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 <div id="myLoad" class="modal">
     <div class="modal-content">
         <div class="ui piled segment">
@@ -193,13 +223,13 @@
                     <i id="leftCI2" class="large yellow area chart icon"></i>
                     <a id="leftCH2" class="header" href="./index2.html">動態圖層</a>
                 </div>
-                </div>
+                </div><!--
             <div id="leftPMC_I4" class="item">
                 <div id="leftC3" class="content">
                     <i id="leftCI3" class="large inverted user settings icon"></i>
                     <a id="leftCH3" class="header" href="./index3.html">參數監控</a>
                 </div>
-            </div>
+            </div>-->
             <div id="leftPMC_I1" class="item">
                 <div class="content">
                 </div>
@@ -207,33 +237,7 @@
         </div>
     </div>
 </div>
-<!--right popup menu-->
-<div id="rightPM">
-    <div id="rightPMC">
-        <div id="mm">
-            <div class="ui raised segment">
-                <div class="ui four stackable column grid">
-                    <div class="ui grid" style="height:380px;margin-top:14px;">                       
-                        <div id="m1" style="z-index:20;"></div>
-                        <div id="m1_1" style="text-align: right;background-color: rgba(255,255,255,0.8);margin-top:8%;margin-left:40%;position:absolute;z-index:20;width:200px;"></div>
-                    </div>
-                    <div class="ui grid" style="height:380px">
-                        <div id="m2"></div>
-                        <div id="m2_1" style="text-align: right;background-color: rgba(255,255,255,0.8);margin-top:8%;margin-left:40%;position:absolute;z-index:20;width:200px;"></div>
-                    </div>
-                    <div class="ui grid" style="height:380px">
-                        <div id="m3"></div>
-                        <div id="m3_1" style="text-align: right;background-color: rgba(255,255,255,0.8);margin-top:8%;margin-left:40%;position:absolute;z-index:20;width:200px;"></div>
-                    </div>
-                    <div class="ui grid" style="height:380px">
-                        <div id="m4"></div>
-                        <div id="m4_1" style="text-align: right;background-color: rgba(255,255,255,0.8);margin-top:8%;margin-left:40%;position:absolute;z-index:20;width:200px;"></div>
-                    </div>    
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+
 <!--bottom popup menu-->
 <div id="bottomPM">
     <div id="bottomPMC">

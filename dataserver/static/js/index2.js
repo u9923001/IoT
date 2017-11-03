@@ -3,8 +3,8 @@
 'Imagery © <a href="http://mapbox.com">Mapbox</a>';
 
 const MbUrl = 'https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png32?access_token=pk.eyJ1IjoidTk5MjMwMDEiLCJhIjoiY2o3YWdqeGZoMGZhZDJxbzFtZ2wxMWswZiJ9.rieTxvxJSPfaerXHPjMIiA';
-const MyDNS = "http://" + window.location.host;
-const MyWS = "ws://" + window.location.host;
+const MyDNS = "https://" + window.location.host;
+const MyWS = "wss://" + window.location.host;
 //const MyDNS = "https://u9923001.myddns.me";
 //const MyWS = "wss://u9923001.myddns.me";
 //建立感測點Marker
@@ -91,14 +91,20 @@ getLocation(function(a){
 },function(){console.log("gps error")});
 
 ////////定時更新座標
-var updateGPS = setInterval(function(){
-    getLocation(function(a){    
-        var lat = a.coords.latitude;
-        var lng = a.coords.longitude;
-        UserMarker.moveTo([lat+ppp,lng+qqq],[2500]);
-        UserMarker.start();
-    },function(){console.log("gps error")})
-},2500);
+var stT=new Date();
+var updateGPS = function(){
+    requestAnimationFrame(updateGPS);
+    edT =new Date();
+    if(edT.getTime()-stT.getTime()>100){
+        stT=new Date(); 
+        getLocation(function(a){    
+            var lat = a.coords.latitude;
+            var lng = a.coords.longitude;
+            UserMarker.moveTo([lat+ppp,lng+qqq],[500]);
+            UserMarker.start();
+        },function(){console.log("gps error")});
+    }
+};
 
 //////建立地圖上面的按鈕
 //control position - allowed: 'topleft', 'topright', 'bottomleft', 'bottomright'
@@ -129,7 +135,7 @@ Map_L.addControl(new homeBtn());
 var MkCGp = L.markerClusterGroup({ disableClusteringAtZoom : 15,spiderfyOnMaxZoom: true, showCoverageOnHover: true, zoomToBoundsOnClick: true });
 //////////建立Marker圖層
 function creatMkLyr(lyrIds, data){
-    ws.send("1,"+lyrIds);
+    ws.send("idw,"+lyrIds);
     console.log("send");
 }
 
@@ -308,9 +314,9 @@ function waitHLdata(){
         
 }
 
-var logChart = document.getElementById("mm").innerHTML;;
+//var logChart = document.getElementById("mm").innerHTML;;
 //清除舊圖 HCharFin = false
-function clearChart(){
+/*function clearChart(){
     var ec = document.getElementById("mm");
     ec.innerHTML = logChart;
     HCharFin = false;
@@ -440,7 +446,7 @@ function drawHLBase(){
         });
     }
 }
-
+*/
 //畫歷史圖 HCharFin = true
 function creatHChart(){
     //畫新圖  
@@ -454,13 +460,13 @@ function popHWd(){
     
     btmPopup(false);
     if(!(PopState & 0x04)){
-        rightPopup(true);
+        //rightPopup(true);
         //console.log("right popup");
     }
     //畫圖
     creatHChart();    
 }
-
+/*
 //點擊地圖事件
 Map_L.on('click', function(e) {
     
@@ -474,7 +480,7 @@ Map_L.on('click', function(e) {
     rightPopup(false);
     leftPopup(false);
 });
-
+*/
 ////////點擊感測站POPUP事件
 Map_L.on('popupopen', function(e) {
     var attr = e.popup._source.options.attributes;
@@ -642,10 +648,12 @@ else {
 }
 
 var Log_idw=new Array(3);
-function getIWD(id){
+var IDW_FIRST=true;
+function getIWD(data){
     //$.getJSON('https://u9923001.myddns.me/sensor/idw/', function(data){
-    $.getJSON(MyDNS+'/sensor/idw/', function(data){
-     
+    //$.getJSON(MyDNS+'/sensor/idw/', function(data){
+     if(IDW_FIRST==true){
+        
         if(data[0].Series != null){
             console.log("GET History");
             //console.log(data);
@@ -882,13 +890,14 @@ function getIWD(id){
             }
             /* tooltip code end */
         }
-    
-    });
+        IDW_FIRST =false;
+     }
+    //});
 }
 
 //前後端通訊   
 //var socket = io();
-for(var i=0;i<6;i++){    
+/*for(var i=0;i<6;i++){    
     getLassDecode(i,function(id,a){
         SkioState[id] = true;
         //第一次資料接收執行
@@ -901,6 +910,27 @@ for(var i=0;i<6;i++){
             console.log("等等");
         }
     }); 
+}*/
+//前後端通訊   
+function LassDecode(data, cb){
+	var res = data.feeds;
+	var src2id = {
+		"last-all-airbox by IIS-NRL": 0,
+		"last-all-maps by IIS-NRL": 1,
+		"last-all-lass by IIS-NRL": 2,
+		"last-all-lass4u by IIS-NRL": 3,
+		"last-all-indie by IIS-NRL": 4,
+		"last-all-probecube by IIS-NRL": 5,
+	}
+	var id = src2id[data.source];
+
+	console.log('[LassDecode]', id, res);
+	if(typeof id != 'undefined') {
+		LassData[id] = res;
+        //creatMkLyr(id,LassData[id]);
+		
+        cb(id,LassData[id]);
+	}
 }
 /*
 window.getLassProg = setInterval(function(){
@@ -915,34 +945,55 @@ window.getLassProg = setInterval(function(){
 */
 //var wsUri = "ws://192.168.50.19:3001/socket";
 var wsUri = MyWS+"/socket";
-var ws = new WebSocket(wsUri); 
-ws.onopen = function(evt) { 
-    console.log("ws open");
-    ws.send("5,open");
-}; 
-ws.onclose = function(evt) { 
-    console.log("ws close"); 
-}; 
-ws.onmessage = function(evt) { 
-    //console.log(evt.data);
-    switch(evt.data[0]){
-        case "0":
-            HLGet = true;
-            getHistory();
-            console.log(evt.data);
-        break;
-        case "1":
+var ws = null;
+function wsconnect() {
+	ws = new WebSocket(wsUri);
+	ws.onopen = function(evt) {
+		console.log("ws open");
+		//ws.send("5,open");
+	}; 
+	ws.onclose = function(evt) {
+		console.log("ws close");
+		var t = setTimeout(wsconnect, 1000)
+	};
+	ws.onmessage = function(evt) {
+		//console.log(evt.data);
+		var data = evt.data.split(',');
+		var op = data.shift()
+		data = data.join(',')
+		switch(op){
+		case "0":
+            console.log(op, data);
+			HLGet = true;
+            data = JSON.parse(data)
+			getHistory(data);
+			break;
+        case "idw":
+            data = JSON.parse(data);
+            console.log(op, data)
             getIWD(evt.data);
-            console.log(evt.data);
+            //console.log(evt.data);
         break;
-        case "5":
-            console.log(evt.data);
-        break;
-    }
-}; 
-ws.onerror = function(evt) { 
-    console.log("error: "+evt.data);
-};
+		case "5":
+			console.log(evt.data);
+			break;
+		case "lass":
+			//console.log(op, data);
+			data = JSON.parse(data)
+			LassDecode(data, function(id,a){
+				console.log(id);
+                ws.send("idw,"+id);
+                console.log("idw");
+				//upLaPop(id,a);
+			});
+		}
+	}; 
+	ws.onerror = function(evt) {
+		console.log("error:", evt);
+	};
+}
+wsconnect()
+
 //接收LASS歷史資料
 /*socket.on('get_HL', function(data) {
     HLGet = true;
@@ -999,13 +1050,13 @@ function CSSInit(){
     }
     
     //底部彈出視窗
-    var _bottomPM = document.getElementById("bottomPM");
+    /*var _bottomPM = document.getElementById("bottomPM");
     var _right_d1 = document.getElementById("right_d1");
     var _right_d2 = document.getElementById("right_d2");
-    _bottomPM.style.width = '320px';
+    _bottomPM.style.width = '320px';*/
     //_right_d1 = '320px';
     //_right_d2 = '320px';
-    var r = (_w-320)
+    /*var r = (_w-320)
     if(r > 0){
         _bottomPM.style.left = r/2 + 'px';
     }
@@ -1023,9 +1074,9 @@ function CSSInit(){
             });
         }
         ticking = true;
-    });
+    });*/
     //右側彈出視窗
-    var _rightPM = document.getElementById("rightPM");
+    /*var _rightPM = document.getElementById("rightPM");
     var ticking1 = false;
     _rightPM.addEventListener("scroll",function() {
         if (!ticking) {
@@ -1038,7 +1089,7 @@ function CSSInit(){
             });
         }
         ticking1 = true;
-    });
+    });*/
 }
 //視窗大小變化時
 function windowResize(){
@@ -1048,7 +1099,7 @@ function windowResize(){
     //location.reload();
     console.log("window size chang CSS reset");
 }
-
+/*
 function rightPopup(popup){
     var _rightPM = document.getElementById("rightPM");
     var l = parseInt(_rightPM.style.right,10);
@@ -1066,7 +1117,7 @@ function rightPopup(popup){
         }
     }
 }
-
+*/
 function btmPopup(popup,attr){
     var _bottomPM = document.getElementById("bottomPM");
     var l = parseInt(_bottomPM.style.bottom,10);
@@ -1107,24 +1158,24 @@ function topBtnClick(){
     var _cMenubtn = document.getElementById("cMenuBtn");
     
     var _leftPM = document.getElementById("leftPM");
-    var _rightPM = document.getElementById("rightPM");
-    var _rightPMC = document.getElementById("rightPMC");
+    //var _rightPM = document.getElementById("rightPM");
+    //var _rightPMC = document.getElementById("rightPMC");
     var _bottomPM = document.getElementById("bottomPM");
     var _cPM = document.getElementById("cPM");
     var _myLoad = document.getElementById("myLoad");
-    var _mm = document.getElementById("mm");
+    //var _mm = document.getElementById("mm");
     var _cPMclose = document.getElementById("cPMclose");
         
     _leftPM.style.left = '-240px';
     _bottomPM.style.bottom = '-145px';
-    
+    /*
     _rightPM.style.height = "450px";
     _rightPM.style.width = '320px';
     _rightPM.style.right = '-320px';
     _rightPMC.style.height = "450px";
-    _rightPMC.style.width = 400+'px';
-    _mm.style.height = "450px";
-    _mm.style.width = 400+'px';
+    _rightPMC.style.width = 400+'px';*/
+    //_mm.style.height = "450px";
+    //_mm.style.width = 400+'px';
     
     
     //左側彈出
@@ -1135,7 +1186,7 @@ function topBtnClick(){
     _cMenubtn.onclick = function(){
         _cPM.style.display = 'block';
         PopState |= 0x02;
-        if(PopState & 0x04)rightPopup(false);
+        //if(PopState & 0x04)rightPopup(false);
         //console.log(PopState);
     };
     _cPMclose.onclick = function(){

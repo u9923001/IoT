@@ -3,8 +3,8 @@
     "domainname":"u9923001.myddns.me",
     "dbaddr": "http://localhost:8086",
     "dbname": "test1",
-    "user": "test",
-    "pass": "123456",
+    "user": "u9923001",
+    "pass": "zephyrus2",
     "keydir": "./keys/",
     "log":"",
     "verb": 4

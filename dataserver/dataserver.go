@@ -14,6 +14,10 @@ import (
 	com "../common"
 	"github.com/gorilla/websocket"
 	"github.com/influxdata/influxdb/client/v2"
+    
+    "crypto/tls"
+    "golang.org/x/crypto/acme/autocert"
+    
 )
 
 var configFile = flag.String("c", "config.json", "config file")
@@ -217,12 +221,53 @@ func main() {
 				}
 				b = append([]byte("idw,"), b...)
 				wsconn.Send(messageType, b)
+            /*new adddddddddddddddddddddd*/
+            case "mobile": //mobile id
+				res, err := queryDB(dbClient, config.DbName, "SELECT * FROM mobile WHERE Device_id = '"+cmd[1]+"' AND time > now() - 10s")
+				b, err := json.Marshal(res)
+                fmt.Println("aaa")
+				if err != nil {
+					wsconn.Send(1, []byte("mobile,[]"))
+					goto END
+				}
+				b = append([]byte("mobile,"), b...)
+				wsconn.Send(messageType, b)
 			}
 
 		END:
 		}
 	})
+    //Handle iot2040 get from db
+	myRouter.HandleFunc("/Getsensor", func(w http.ResponseWriter, r *http.Request) {
+        
+        w.Header().Add("Access-Control-Allow-Origin", "*")
 
+        // only POST
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+			return
+		}
+        
+        type Dev_id struct {
+            Device_id string `json:"Device_id,omitempty"`
+        }
+        
+        v := Dev_id{}
+		decoder := json.NewDecoder(r.Body)
+		err := decoder.Decode(&v)
+		if err != nil {
+			dbgErr("104", err)
+			return
+		}
+        
+        res, err := queryDB(dbClient, config.DbName, "SELECT * FROM mobile WHERE Device_id = '"+v.Device_id+"' AND time > now() - 10s")
+        //b, err := json.Marshal(res)
+        if(err != nil){
+            json.NewEncoder(w).Encode("")
+        }else{
+            json.NewEncoder(w).Encode(res)
+        }
+    })
 	//Handle 7688 send to db
 	myRouter.HandleFunc("/sensor", func(w http.ResponseWriter, r *http.Request) {
 
@@ -255,25 +300,25 @@ func main() {
 	Vln(1, "bind @", config.LocalAddr)
 
 	//--HTTP
-	http.ListenAndServe(config.LocalAddr, myRouter)
+	//http.ListenAndServe(config.LocalAddr, myRouter)
 
 	//--HTTPS-1
 	//http.ListenAndServeTLS(config.LocalAddr, "server.crt", "server.key", myRouter)
 
 	//--HTTPS-2
-	/*	certManager := autocert.Manager{
-			Prompt:     autocert.AcceptTOS,
-			HostPolicy: autocert.HostWhitelist(config.DomainName),
-			Cache:      autocert.DirCache("certs"),
-		}
-		htServer := &http.Server{
-			Addr:    config.LocalAddr,
-			Handler: myRouter,
-			TLSConfig: &tls.Config{
-				GetCertificate: certManager.GetCertificate,
-			},
-		}
-		htServer.ListenAndServeTLS("", "")*/
+    certManager := autocert.Manager{
+        Prompt:     autocert.AcceptTOS,
+        HostPolicy: autocert.HostWhitelist(config.DomainName),
+        Cache:      autocert.DirCache("certs"),
+    }
+    htServer := &http.Server{
+        Addr:    config.LocalAddr,
+        Handler: myRouter,
+        TLSConfig: &tls.Config{
+            GetCertificate: certManager.GetCertificate,
+        },
+    }
+    htServer.ListenAndServeTLS("", "")
 
 }
 
